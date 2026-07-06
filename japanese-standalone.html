@@ -1,0 +1,792 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>日本語 — Japanese Learning</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<div id="root" style="min-height:100vh"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const _mem = {};
+window.storage = {
+  async get(k){ try { const v = localStorage.getItem(k); return v==null?null:{value:v}; } catch(e){ return _mem[k]!=null?{value:_mem[k]}:null; } },
+  async set(k,v){ try { localStorage.setItem(k,v); } catch(e){ _mem[k]=v; } return {value:v}; },
+};
+
+function Icon({ name, size = 18, className = "" }) {
+  const p = {
+    book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+    languages: <><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></>,
+    layers: <><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></>,
+    cards: <><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M7 5V3h12a2 2 0 0 1 2 2v12h-2"/></>,
+    refresh: <><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></>,
+    check: <path d="M20 6 9 17l-5-5"/>,
+    x: <><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+    trash: <><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+    volume: <><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></>,
+    brush: <><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></>,
+    key: <><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></>,
+    back: <path d="m15 18-6-6 6-6"/>,
+    arrow: <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {p[name] || null}
+    </svg>
+  );
+}
+
+// ---------- DATA ----------
+const HIRAGANA = [
+  ["あ","a"],["い","i"],["う","u"],["え","e"],["お","o"],
+  ["か","ka"],["き","ki"],["く","ku"],["け","ke"],["こ","ko"],
+  ["さ","sa"],["し","shi"],["す","su"],["せ","se"],["そ","so"],
+  ["た","ta"],["ち","chi"],["つ","tsu"],["て","te"],["と","to"],
+  ["な","na"],["に","ni"],["ぬ","nu"],["ね","ne"],["の","no"],
+  ["は","ha"],["ひ","hi"],["ふ","fu"],["へ","he"],["ほ","ho"],
+  ["ま","ma"],["み","mi"],["む","mu"],["め","me"],["も","mo"],
+  ["や","ya"],["ゆ","yu"],["よ","yo"],
+  ["ら","ra"],["り","ri"],["る","ru"],["れ","re"],["ろ","ro"],
+  ["わ","wa"],["を","wo"],["ん","n"],
+];
+const KATAKANA = [
+  ["ア","a"],["イ","i"],["ウ","u"],["エ","e"],["オ","o"],
+  ["カ","ka"],["キ","ki"],["ク","ku"],["ケ","ke"],["コ","ko"],
+  ["サ","sa"],["シ","shi"],["ス","su"],["セ","se"],["ソ","so"],
+  ["タ","ta"],["チ","chi"],["ツ","tsu"],["テ","te"],["ト","to"],
+  ["ナ","na"],["ニ","ni"],["ヌ","nu"],["ネ","ne"],["ノ","no"],
+  ["ハ","ha"],["ヒ","hi"],["フ","fu"],["ヘ","he"],["ホ","ho"],
+  ["マ","ma"],["ミ","mi"],["ム","mu"],["メ","me"],["モ","mo"],
+  ["ヤ","ya"],["ユ","yu"],["ヨ","yo"],
+  ["ラ","ra"],["リ","ri"],["ル","ru"],["レ","re"],["ロ","ro"],
+  ["ワ","wa"],["ヲ","wo"],["ン","n"],
+];
+const KANJI = [
+  ["一","one","ichi / hito(tsu)"],["二","two","ni / futa(tsu)"],["三","three","san / mit(tsu)"],
+  ["四","four","shi / yon, yot(tsu)"],["五","five","go / itsu(tsu)"],["六","six","roku / mut(tsu)"],
+  ["七","seven","shichi / nana(tsu)"],["八","eight","hachi / yat(tsu)"],["九","nine","kyuu, ku / kokono(tsu)"],
+  ["十","ten","juu / too"],["百","hundred","hyaku"],["千","thousand","sen / chi"],
+  ["万","ten thousand","man, ban"],["円","yen, circle","en / maru(i)"],["日","day, sun","nichi, jitsu / hi, ka"],
+  ["月","month, moon","getsu, gatsu / tsuki"],["火","fire","ka / hi"],["水","water","sui / mizu"],
+  ["木","tree, wood","moku / ki"],["金","gold, money","kin / kane"],["土","earth, soil","do / tsuchi"],
+  ["曜","weekday","you"],["年","year","nen / toshi"],["時","time, hour","ji / toki"],
+  ["分","minute, part","bun, fun / wa(keru)"],["午","noon","go"],["前","before, front","zen / mae"],
+  ["後","after, behind","go, kou / ato, ushi(ro)"],["今","now","kon / ima"],["半","half","han / naka(ba)"],
+  ["上","up, above","jou / ue, a(geru)"],["下","down, below","ka, ge / shita, sa(geru)"],["中","middle, inside","chuu / naka"],
+  ["外","outside","gai / soto, hoka"],["右","right","u, yuu / migi"],["左","left","sa / hidari"],
+  ["東","east","tou / higashi"],["西","west","sei, sai / nishi"],["南","south","nan / minami"],
+  ["北","north","hoku / kita"],["山","mountain","san / yama"],["川","river","sen / kawa"],
+  ["田","rice field","den / ta"],["天","heaven, sky","ten / ama"],["気","spirit, energy","ki, ke"],
+  ["雨","rain","u / ame"],["電","electricity","den"],["花","flower","ka / hana"],
+  ["空","sky, empty","kuu / sora, a(ku)"],["人","person","jin, nin / hito"],["男","man","dan, nan / otoko"],
+  ["女","woman","jo / onna"],["子","child","shi / ko"],["父","father","fu / chichi"],
+  ["母","mother","bo / haha"],["友","friend","yuu / tomo"],["名","name","mei / na"],
+  ["先","ahead, previous","sen / saki"],["生","life, birth","sei, shou / i(kiru), u(mareru)"],["学","study","gaku / mana(bu)"],
+  ["校","school","kou"],["大","big","dai, tai / oo(kii)"],["小","small","shou / chii(sai), ko"],
+  ["高","tall, expensive","kou / taka(i)"],["安","cheap, safe","an / yasu(i)"],["新","new","shin / atara(shii)"],
+  ["古","old","ko / furu(i)"],["長","long, leader","chou / naga(i)"],["白","white","haku / shiro(i)"],
+  ["本","book, origin","hon / moto"],["文","text, writing","bun, mon / fumi"],["字","character, letter","ji"],
+  ["私","I, private","shi / watashi"],["何","what","ka / nani, nan"],["口","mouth","kou, ku / kuchi"],
+  ["目","eye","moku / me"],["耳","ear","ji / mimi"],["手","hand","shu / te"],
+  ["足","foot, suffice","soku / ashi, ta(riru)"],["力","power","ryoku, riki / chikara"],["見","see","ken / mi(ru)"],
+  ["聞","hear, ask","bun / ki(ku)"],["言","say, word","gen, gon / i(u), koto"],["話","talk, story","wa / hana(su)"],
+  ["読","read","doku / yo(mu)"],["書","write","sho / ka(ku)"],["行","go","kou, gyou / i(ku), okona(u)"],
+  ["来","come","rai / ku(ru)"],["出","exit, leave","shutsu / de(ru), da(su)"],["入","enter","nyuu / hai(ru), i(reru)"],
+  ["食","eat","shoku / ta(beru)"],["飲","drink","in / no(mu)"],["立","stand","ritsu / ta(tsu)"],
+  ["休","rest","kyuu / yasu(mu)"],["車","car","sha / kuruma"],["駅","station","eki"],
+  ["道","road, way","dou / michi"],["国","country","koku / kuni"],["語","language","go / kata(ru)"],
+  ["毎","every","mai"],["会","meet, society","kai, e / a(u)"],["同","same","dou / ona(ji)"],
+  ["事","matter, thing","ji / koto"],["自","self","ji, shi / mizuka(ra)"],["社","company, shrine","sha / yashiro"],
+  ["発","departure, emit","hatsu, hotsu"],["者","person","sha / mono"],["地","ground, place","chi, ji"],
+  ["業","business, vocation","gyou, gou / waza"],["方","direction, person","hou / kata"],["思","think","shi / omo(u)"],
+  ["持","hold","ji / mo(tsu)"],["待","wait","tai / ma(tsu)"],["教","teach","kyou / oshi(eru)"],
+  ["知","know","chi / shi(ru)"],["使","use","shi / tsuka(u)"],["始","begin","shi / haji(meru)"],
+  ["終","end, finish","shuu / o(waru)"],["売","sell","bai / u(ru)"],["買","buy","bai / ka(u)"],
+  ["作","make","saku, sa / tsuku(ru)"],["働","work","dou / hatara(ku)"],["動","move","dou / ugo(ku)"],
+  ["住","live, reside","juu / su(mu)"],["早","early, fast","sou / haya(i)"],["明","bright","mei / aka(rui)"],
+  ["暗","dark","an / kura(i)"],["楽","fun, music","gaku, raku / tano(shii)"],["元","origin, source","gen, gan / moto"],
+  ["病","illness","byou / ya(mu)"],["医","doctor, medicine","i"],["体","body","tai / karada"],
+  ["物","thing, object","butsu, motsu / mono"],["品","goods, article","hin / shina"],["店","shop","ten / mise"],
+  ["屋","shop, roof","oku / ya"],["紙","paper","shi / kami"],["飯","cooked rice, meal","han / meshi"],
+  ["肉","meat","niku"],["魚","fish","gyo / sakana, uo"],["鳥","bird","chou / tori"],
+  ["犬","dog","ken / inu"],["牛","cow","gyuu / ushi"],["馬","horse","ba / uma"],
+  ["米","rice, America","bei, mai / kome"],["色","color","shoku, shiki / iro"],["青","blue","sei / ao(i)"],
+  ["赤","red","seki / aka(i)"],["黒","black","koku / kuro(i)"],["風","wind","fuu / kaze"],
+  ["雪","snow","setsu / yuki"],["海","sea","kai / umi"],["森","forest","shin / mori"],
+  ["林","woods","rin / hayashi"],["石","stone","seki / ishi"],["草","grass","sou / kusa"],
+  ["村","village","son / mura"],["町","town","chou / machi"],["市","city, market","shi / ichi"],
+  ["区","ward, district","ku"],["県","prefecture","ken"],["京","capital","kyou, kei"],
+  ["都","metropolis","to, tsu / miyako"],["部","part, section","bu"],["室","room","shitsu / muro"],
+  ["図","diagram, plan","zu, to / haka(ru)"],["数","number, count","suu / kazu, kazo(eru)"],["計","measure, plan","kei / haka(ru)"],
+  ["様","manner, Mr./Ms.","you / sama"],["親","parent, intimate","shin / oya, shita(shii)"],["兄","older brother","kei, kyou / ani"],
+  ["弟","younger brother","dai, tei / otouto"],["姉","older sister","shi / ane"],["妹","younger sister","mai / imouto"],
+  ["家","house, family","ka, ke / ie, ya"],["族","family, tribe","zoku"],["心","heart, mind","shin / kokoro"],
+  ["寺","temple","ji / tera"],["池","pond","chi / ike"],["鉄","iron","tetsu"],
+];
+
+const TABS = [
+  { id: "study", label: "Study", icon: "book" },
+  { id: "translate", label: "Translate", icon: "languages" },
+  { id: "words", label: "My Words", icon: "layers" },
+];
+
+// Kana whose printed shape and handwritten stroke form commonly differ — both are correct.
+const KANA_VARIANTS = {
+  "き": "Printed き often links the bottom curve to the strokes above; by hand it's usually written as 4 separate strokes.",
+  "さ": "Printed さ often joins the bottom hook; by hand the hook is usually a separate 3rd stroke.",
+  "り": "Printed り is often one connected stroke; by hand it's usually two separate strokes.",
+  "そ": "そ can be one continuous zig-zag stroke, or start with a separate short tick — both are standard.",
+  "ふ": "Printed ふ can look connected; by hand it's usually written as 4 separate strokes.",
+  "ゆ": "Printed ゆ can look like one connected stroke; by hand the loop and the vertical are separate.",
+};
+
+const BOX_INTERVALS = [0, 60e3, 600e3, 86400e3, 259200e3, 864000e3];
+const MASTER_BOX = 3;
+const SESSION_SIZE = 20;
+
+const kvgUrl = (char) => `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${char.codePointAt(0).toString(16).padStart(5, "0")}.svg`;
+
+const shuffle = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+
+const speak = (text) => {
+  try { const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 0.85; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
+};
+
+// ---------- STROKE ORDER ----------
+function StrokeOrder({ char }) {
+  const url = kvgUrl(char);
+  const [paths, setPaths] = useState(null);
+  const [mode, setMode] = useState("loading");
+  const [playKey, setPlayKey] = useState(0);
+  const pathRefs = useRef([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMode("loading"); setPaths(null); pathRefs.current = [];
+    fetch(url).then((r) => { if (!r.ok) throw new Error("nf"); return r.text(); })
+      .then((t) => {
+        if (cancelled) return;
+        const doc = new DOMParser().parseFromString(t, "image/svg+xml");
+        const ds = [...doc.querySelectorAll("path")].map((p) => p.getAttribute("d")).filter(Boolean);
+        if (!ds.length) throw new Error("empty");
+        setPaths(ds); setMode("anim"); setPlayKey((k) => k + 1);
+      }).catch(() => { if (!cancelled) setMode("img"); });
+    return () => { cancelled = true; };
+  }, [url]);
+
+  useEffect(() => {
+    if (mode !== "anim" || !paths) return;
+    let delay = 0; const timers = [];
+    pathRefs.current.forEach((el) => {
+      if (!el) return;
+      const len = el.getTotalLength();
+      el.style.transition = "none"; el.style.strokeDasharray = `${len}`; el.style.strokeDashoffset = `${len}`; el.style.opacity = "1";
+      const dur = Math.max(280, Math.min(850, len * 7)); const start = delay;
+      timers.push(setTimeout(() => { el.style.transition = `stroke-dashoffset ${dur}ms ease`; el.style.strokeDashoffset = "0"; }, start + 40));
+      delay += dur + 170;
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [paths, mode, playKey]);
+
+  if (mode === "loading") return <div className="text-sm text-stone-400 py-10">Loading stroke order…</div>;
+  if (mode === "fail") return <div className="text-center text-sm text-stone-400 py-6 px-6 max-w-xs">Stroke diagram for <span className="text-stone-600 text-lg">{char}</span> couldn't load. Check your internet connection.</div>;
+  if (mode === "img") return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-44 h-44 rounded-2xl bg-white border border-stone-200 overflow-hidden">
+        <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-stone-100" />
+        <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-stone-100" />
+        <img src={url} alt={`Stroke order for ${char}`} className="absolute inset-0 w-full h-full object-contain p-2" onError={() => setMode("fail")} />
+      </div>
+      <span className="text-xs text-stone-400">Numbers show the writing order</span>
+      <span className="text-[10px] text-stone-300">Stroke data: KanjiVG · CC BY-SA</span>
+    </div>
+  );
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <svg viewBox="0 0 109 109" className="w-44 h-44 rounded-2xl bg-white border border-stone-200">
+        <line x1="54.5" y1="0" x2="54.5" y2="109" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+        <line x1="0" y1="54.5" x2="109" y2="54.5" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+        {paths.map((d, i) => (<path key={`g${i}`} d={d} fill="none" stroke="#ededed" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />))}
+        {paths.map((d, i) => (<path key={`s${i}-${playKey}`} ref={(el) => (pathRefs.current[i] = el)} d={d} fill="none" stroke="#f43f5e" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0 }} />))}
+      </svg>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-stone-400">{paths.length} stroke{paths.length > 1 ? "s" : ""}</span>
+        <button onClick={() => setPlayKey((k) => k + 1)} className="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium flex items-center gap-1"><Icon name="refresh" size={13} /> Replay</button>
+      </div>
+      <span className="text-[10px] text-stone-300">Stroke data: KanjiVG · CC BY-SA</span>
+    </div>
+  );
+}
+
+// ---------- TRACE ----------
+function TraceCanvas({ char }) {
+  const url = kvgUrl(char);
+  const [guide, setGuide] = useState(true);
+  const [guideOk, setGuideOk] = useState(true);
+  const [strokes, setStrokes] = useState([]);
+  const [current, setCurrent] = useState(null);
+  const svgRef = useRef(null);
+  const drawing = useRef(false);
+  useEffect(() => { setStrokes([]); setCurrent(null); setGuideOk(true); setGuide(true); }, [char]);
+  const point = (e) => { const rect = svgRef.current.getBoundingClientRect(); return { x: ((e.clientX - rect.left) / rect.width) * 109, y: ((e.clientY - rect.top) / rect.height) * 109 }; };
+  const start = (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} drawing.current = true; setCurrent([point(e)]); };
+  const move = (e) => { if (!drawing.current) return; e.preventDefault(); const p = point(e); setCurrent((c) => (c ? [...c, p] : [p])); };
+  const end = () => { if (!drawing.current) return; drawing.current = false; setCurrent((c) => { if (c && c.length > 1) setStrokes((s) => [...s, c]); return null; }); };
+  const toPath = (pts) => pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden">
+        {guide && guideOk && (<img src={url} alt="" onError={() => setGuideOk(false)} className="absolute inset-0 w-full h-full object-contain p-2 opacity-20 pointer-events-none" />)}
+        <svg ref={svgRef} viewBox="0 0 109 109" className="absolute inset-0 w-full h-full cursor-crosshair" style={{ touchAction: "none" }} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onPointerLeave={end}>
+          <line x1="54.5" y1="0" x2="54.5" y2="109" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1="54.5" x2="109" y2="54.5" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+          {strokes.map((s, i) => (<path key={`m${i}`} d={toPath(s)} fill="none" stroke="#1c1917" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />))}
+          {current && (<path d={toPath(current)} fill="none" stroke="#1c1917" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />)}
+        </svg>
+      </div>
+      <div className="text-xs text-stone-400">{guideOk ? `Your strokes: ${strokes.length}` : "Guide unavailable — trace freehand"}</div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setGuide((g) => !g)} disabled={!guideOk} className={`px-3 py-1.5 rounded-full text-xs font-medium disabled:opacity-40 ${guide && guideOk ? "bg-rose-100 text-rose-600" : "bg-stone-100 text-stone-500"}`}>{guide ? "Guide on" : "Guide off"}</button>
+        <button onClick={() => setStrokes((s) => s.slice(0, -1))} className="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Undo</button>
+        <button onClick={() => { setStrokes([]); setCurrent(null); }} className="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Clear</button>
+      </div>
+    </div>
+  );
+}
+
+function WritePanel({ char, onClose }) {
+  const [tab, setTab] = useState("watch");
+  const variant = KANA_VARIANTS[char];
+  return (
+    <div className="w-full max-w-sm flex flex-col items-center gap-4 py-2">
+      <div className="flex gap-1 bg-stone-100 rounded-full p-1">
+        {[["watch", "Watch"], ["trace", "Trace"]].map(([id, label]) => (<button key={id} onClick={() => setTab(id)} className={`px-5 py-1.5 rounded-full text-sm font-medium transition ${tab === id ? "bg-white text-rose-500 shadow-sm" : "text-stone-500"}`}>{label}</button>))}
+      </div>
+      {variant && (
+        <div className="w-full max-w-xs text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center">
+          <div className="mb-1">printed <span className="text-xl text-stone-800 align-middle mx-1">{char}</span> · handwritten below</div>
+          {variant}
+        </div>
+      )}
+      {tab === "watch" ? <StrokeOrder char={char} /> : <TraceCanvas char={char} />}
+      <button onClick={onClose} className="text-sm text-rose-500 font-medium">← Back</button>
+    </div>
+  );
+}
+
+// ---------- WRITE CARD (draw from memory, then compare) ----------
+function WriteCard({ char, revealed }) {
+  const url = kvgUrl(char);
+  const [strokes, setStrokes] = useState([]);
+  const [current, setCurrent] = useState(null);
+  const [guideOk, setGuideOk] = useState(true);
+  const svgRef = useRef(null);
+  const drawing = useRef(false);
+  useEffect(() => { setStrokes([]); setCurrent(null); setGuideOk(true); }, [char]);
+  const point = (e) => { const rect = svgRef.current.getBoundingClientRect(); return { x: ((e.clientX - rect.left) / rect.width) * 109, y: ((e.clientY - rect.top) / rect.height) * 109 }; };
+  const start = (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} drawing.current = true; setCurrent([point(e)]); };
+  const move = (e) => { if (!drawing.current) return; e.preventDefault(); const p = point(e); setCurrent((c) => (c ? [...c, p] : [p])); };
+  const end = () => { if (!drawing.current) return; drawing.current = false; setCurrent((c) => { if (c && c.length > 1) setStrokes((s) => [...s, c]); return null; }); };
+  const toPath = (pts) => pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  return (
+    <div className="flex flex-col items-center gap-3 w-full">
+      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden">
+        {revealed && guideOk && (<img src={url} alt="" onError={() => setGuideOk(false)} className="absolute inset-0 w-full h-full object-contain p-2 opacity-40 pointer-events-none" />)}
+        {revealed && !guideOk && (<div className="absolute inset-0 flex items-center justify-center text-8xl text-stone-200 pointer-events-none">{char}</div>)}
+        <svg ref={svgRef} viewBox="0 0 109 109" className="absolute inset-0 w-full h-full cursor-crosshair" style={{ touchAction: "none" }} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onPointerLeave={end}>
+          <line x1="54.5" y1="0" x2="54.5" y2="109" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1="54.5" x2="109" y2="54.5" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />
+          {strokes.map((s, i) => (<path key={`w${i}`} d={toPath(s)} fill="none" stroke="#f43f5e" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />))}
+          {current && (<path d={toPath(current)} fill="none" stroke="#f43f5e" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />)}
+        </svg>
+      </div>
+      <span className="text-xs text-stone-400">{revealed ? "Your strokes (pink) over the real character" : `Your strokes: ${strokes.length}`}</span>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setStrokes((s) => s.slice(0, -1))} className="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Undo</button>
+        <button onClick={() => { setStrokes([]); setCurrent(null); }} className="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Clear</button>
+      </div>
+    </div>
+  );
+}
+
+function VariantNote({ char }) {
+  const v = KANA_VARIANTS[char];
+  if (!v) return null;
+  return (
+    <div className="w-full max-w-sm text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center">
+      ✍️ {v} <span className="text-amber-600">Tap the brush to see the handwritten strokes.</span>
+    </div>
+  );
+}
+
+// ---------- STUDY (map → learn / review) ----------
+function Study({ onAddCard, progress, recordResult }) {
+  const [set, setSet] = useState("hiragana");
+  const [view, setView] = useState("home");
+  const [learnIdx, setLearnIdx] = useState(0);
+  const [learnFlipped, setLearnFlipped] = useState(false);
+  const [writeChar, setWriteChar] = useState(null);
+  const [deck, setDeck] = useState([]);
+  const [rIdx, setRIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [sess, setSess] = useState({ right: 0, total: 0 });
+  const [results, setResults] = useState([]);
+  const baselineKnown = useRef(new Set());
+
+  const isKanji = set === "kanji";
+  const source = set === "hiragana" ? HIRAGANA : set === "katakana" ? KATAKANA : KANJI;
+  const dirs = isKanji ? ["rec"] : ["rec", "rcl"];
+
+  const boxOf = (ch, d) => progress[`${ch}|${d}`]?.box || 0;
+  const statusOf = (ch) => {
+    if (dirs.every((d) => boxOf(ch, d) >= MASTER_BOX)) return "known";
+    if (dirs.some((d) => progress[`${ch}|${d}`])) return "learning";
+    return "new";
+  };
+  // 0..1 progress toward full mastery (across both directions); -1 = never seen
+  const progressOf = (ch) => {
+    if (!dirs.some((d) => progress[`${ch}|${d}`])) return -1;
+    return dirs.reduce((a, d) => a + Math.min(boxOf(ch, d), MASTER_BOX) / MASTER_BOX, 0) / dirs.length;
+  };
+  const tileClass = (ch) => {
+    const p = progressOf(ch);
+    if (p < 0) return "bg-white text-stone-300 border border-stone-200";
+    if (p >= 1) return "bg-emerald-500 text-white";
+    if (p >= 0.66) return "bg-emerald-300 text-emerald-900";
+    if (p >= 0.34) return "bg-emerald-200 text-emerald-800";
+    return "bg-emerald-100 text-emerald-700";
+  };
+  const knownCount = source.filter((it) => statusOf(it[0]) === "known").length;
+  const learningCount = source.filter((it) => statusOf(it[0]) === "learning").length;
+  const now = Date.now();
+  const dueCount = source.reduce((acc, it) => acc + dirs.filter((d) => { const st = progress[`${it[0]}|${d}`]; return !st || st.due <= now; }).length, 0);
+
+  const changeSet = (s) => { setSet(s); setView("home"); };
+  const startLearn = (i) => { setLearnIdx(i); setLearnFlipped(false); setView("learn"); };
+
+  const startReview = () => {
+    baselineKnown.current = new Set(source.filter((it) => statusOf(it[0]) === "known").map((it) => it[0]));
+    const t = Date.now();
+    const items = [];
+    source.forEach((it) => dirs.forEach((d) => { const st = progress[`${it[0]}|${d}`]; items.push({ item: it, dir: d, box: st?.box ?? 0, due: st?.due ?? 0, isNew: !st }); }));
+    let pool = items.filter((x) => x.isNew || x.due <= t);
+    if (!pool.length) pool = items.slice();
+    const ordered = shuffle(pool).sort((a, b) => a.box - b.box).slice(0, SESSION_SIZE);
+    setDeck(ordered.map(({ item, dir }) => ({ item, dir })));
+    setRIdx(0); setFlipped(false); setSess({ right: 0, total: 0 }); setResults([]); setView("review");
+  };
+
+  const grade = (got) => {
+    const cur = deck[rIdx];
+    recordResult(`${cur.item[0]}|${cur.dir}`, got);
+    setSess((s) => ({ right: s.right + (got ? 1 : 0), total: s.total + 1 }));
+    setResults((r) => [...r, got]);
+    setFlipped(false);
+    if (rIdx + 1 >= deck.length) { setView("summary"); return; }
+    setRIdx(rIdx + 1);
+  };
+
+  const redoMissed = () => {
+    const missed = deck.filter((_, i) => results[i] === false);
+    if (!missed.length) return;
+    baselineKnown.current = new Set(source.filter((it) => statusOf(it[0]) === "known").map((it) => it[0]));
+    setDeck(shuffle(missed));
+    setRIdx(0); setFlipped(false); setSess({ right: 0, total: 0 }); setResults([]); setView("review");
+  };
+
+  if (writeChar) return (<div className="flex flex-col items-center"><WritePanel char={writeChar} onClose={() => setWriteChar(null)} /></div>);
+
+  // ----- HOME / MAP -----
+  if (view === "home") {
+    return (
+      <div className="flex flex-col items-center gap-5">
+        <div className="flex gap-2">
+          {["hiragana", "katakana", "kanji"].map((s) => (
+            <button key={s} onClick={() => changeSet(s)} className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition ${set === s ? "bg-rose-500 text-white shadow" : "bg-white text-stone-600 border border-stone-200"}`}>{s}</button>
+          ))}
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-semibold text-emerald-500">{knownCount}</span>
+            <span className="text-sm text-stone-400">of {source.length} known</span>
+          </div>
+          {learningCount > 0 && <span className="text-xs text-stone-400">{learningCount} in progress</span>}
+        </div>
+        <div className="w-full grid gap-1.5" style={{ gridTemplateColumns: isKanji ? "repeat(9, minmax(0,1fr))" : "repeat(8, minmax(0,1fr))" }}>
+          {source.map((it, i) => (
+            <button key={it[0]} onClick={() => startLearn(i)} className={`aspect-square rounded-md flex items-center justify-center ${isKanji ? "text-sm" : "text-base"} ${tileClass(it[0])}`}>{it[0]}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-stone-400">
+          <span>new</span>
+          <span className="flex gap-0.5">
+            <span className="w-3 h-3 rounded-sm bg-white border border-stone-200" />
+            <span className="w-3 h-3 rounded-sm bg-emerald-100" />
+            <span className="w-3 h-3 rounded-sm bg-emerald-200" />
+            <span className="w-3 h-3 rounded-sm bg-emerald-300" />
+            <span className="w-3 h-3 rounded-sm bg-emerald-500" />
+          </span>
+          <span>known</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+          <button onClick={() => startLearn(0)} className="border border-stone-200 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
+            <div className="text-stone-700 flex justify-center mb-1"><Icon name="book" size={22} /></div>
+            <div className="text-base font-medium text-stone-800">Learn</div>
+            <div className="text-[11px] text-stone-400">browse freely</div>
+          </button>
+          <button onClick={startReview} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
+            <div className="text-rose-500 flex justify-center mb-1"><Icon name="cards" size={22} /></div>
+            <div className="text-base font-medium text-stone-800">Review</div>
+            <div className="text-[11px] text-stone-400">{dueCount} due</div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- LEARN -----
+  if (view === "learn") {
+    const it = source[learnIdx];
+    const [ch, sound, reading] = it;
+    const goPrev = () => { setLearnFlipped(false); setLearnIdx((learnIdx - 1 + source.length) % source.length); };
+    const goNext = () => { setLearnFlipped(false); setLearnIdx((learnIdx + 1) % source.length); };
+    return (
+      <div className="flex flex-col items-center gap-5">
+        <div className="w-full flex items-center justify-between max-w-sm">
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Map</button>
+          <span className="text-xs text-stone-400">{learnIdx + 1} of {source.length}</span>
+          <span className="w-12" />
+        </div>
+        <div className="text-xs text-stone-400">{learnFlipped ? "" : isKanji ? "Recall the meaning, then flip" : "Recall the sound, then flip"}</div>
+        <button onClick={() => setLearnFlipped((f) => !f)} className="w-full max-w-sm aspect-[4/3] rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition select-none px-4 text-center">
+          {!learnFlipped ? (<div className="text-8xl font-medium text-stone-800">{ch}</div>) : (
+            <div>
+              <div className="text-3xl font-medium text-rose-500">{sound}</div>
+              {isKanji && <div className="text-sm text-stone-500 mt-2">{reading}</div>}
+            </div>
+          )}
+          <div className="text-xs text-stone-300 mt-1">{learnFlipped ? "" : "tap to flip"}</div>
+        </button>
+        {learnFlipped && <VariantNote char={ch} />}
+        <div className="flex gap-4 text-[11px] text-stone-400">
+          {dirs.map((d) => {
+            const b = Math.min(boxOf(ch, d), MASTER_BOX);
+            const label = d === "rec" ? (isKanji ? "recognition" : "read") : "write";
+            return (
+              <span key={d} className="flex items-center gap-1.5">{label}
+                <span className="flex gap-0.5">{[0, 1, 2].map((k) => <span key={k} className={`w-1.5 h-1.5 rounded-full ${k < b ? "bg-emerald-400" : "bg-stone-200"}`} />)}</span>
+              </span>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
+          <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order & writing"><Icon name="brush" /></button>
+          {isKanji && (<button onClick={() => onAddCard({ word: ch, reading: reading, meaning: sound })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
+        </div>
+        <div className="flex gap-3 w-full max-w-sm">
+          <button onClick={goPrev} className="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Previous</button>
+          <button onClick={goNext} className="flex-1 py-3 rounded-2xl bg-stone-800 text-white font-medium flex items-center justify-center gap-2">Next <Icon name="arrow" size={16} /></button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- REVIEW -----
+  if (view === "review") {
+    if (!deck.length) return null;
+    const cur = deck[rIdx];
+    const [ch, sound, reading] = cur.item;
+    const isWrite = !isKanji && cur.dir === "rcl";
+    return (
+      <div className="flex flex-col items-center gap-5">
+        <div className="w-full flex items-center justify-between max-w-sm">
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Map</button>
+          <span className="text-xs text-stone-400">{rIdx + 1} of {deck.length}</span>
+          <span className="w-12" />
+        </div>
+        {isWrite ? (
+          <>
+            <div className="text-xs text-stone-400">Write the character for</div>
+            <div className="text-5xl font-medium text-stone-800">{sound}</div>
+            <WriteCard char={ch} revealed={flipped} />
+            {!flipped && (<button onClick={() => setFlipped(true)} className="w-full max-w-sm py-3 rounded-2xl bg-stone-800 text-white font-medium">Reveal & compare</button>)}
+            {flipped && <VariantNote char={ch} />}
+          </>
+        ) : (
+          <>
+            <div className="text-xs text-stone-400">{isKanji ? "What does it mean?" : "What sound is this?"}</div>
+            <button onClick={() => setFlipped(!flipped)} className="w-full max-w-sm aspect-[4/3] rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition">
+              {!flipped ? (<div className="text-8xl font-medium text-stone-800">{ch}</div>) : (
+                <div className="text-center">
+                  <div className="text-4xl font-medium text-rose-500">{sound}</div>
+                  {isKanji && <div className="text-base text-stone-500 mt-2">{reading}</div>}
+                </div>
+              )}
+              <div className="text-xs text-stone-300 mt-1">{flipped ? "" : "tap to flip"}</div>
+            </button>
+            {flipped && <VariantNote char={ch} />}
+          </>
+        )}
+        <div className="flex items-center gap-3">
+          <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
+          <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order"><Icon name="brush" /></button>
+        </div>
+        {flipped && (
+          <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+            <button onClick={() => grade(false)} className="py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium flex items-center justify-center gap-2"><Icon name="x" /> Missed</button>
+            <button onClick={() => grade(true)} className="py-3 rounded-2xl bg-emerald-500 text-white font-medium flex items-center justify-center gap-2"><Icon name="check" /> Got it</button>
+          </div>
+        )}
+        <div className="text-sm text-stone-400">{sess.right}/{sess.total} this round</div>
+      </div>
+    );
+  }
+
+  // ----- SUMMARY -----
+  const gained = source.filter((it) => statusOf(it[0]) === "known" && !baselineKnown.current.has(it[0])).length;
+  return (
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Icon name="check" size={28} /></div>
+      <div className="text-lg font-semibold text-stone-800">Nice round</div>
+      <div className="text-sm text-stone-500">{sess.right} of {sess.total} right{gained > 0 ? ` · ${gained} turned green` : ""}</div>
+      <div className="grid gap-1.5 w-full max-w-sm" style={{ gridTemplateColumns: "repeat(10, minmax(0,1fr))" }}>
+        {results.map((got, i) => (<div key={i} className={`aspect-square rounded flex items-center justify-center text-sm ${got ? "bg-emerald-300 text-emerald-900" : "bg-red-200 text-red-900"}`}>{deck[i] ? deck[i].item[0] : ""}</div>))}
+      </div>
+      <div className="flex gap-3 text-[11px] text-stone-400">
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-300" /> got it</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-200" /> missed</span>
+      </div>
+      <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+        {results.some((r) => !r) && (<button onClick={redoMissed} className="w-full py-3 rounded-2xl bg-rose-500 text-white text-sm font-medium">Redo the {results.filter((r) => !r).length} you missed</button>)}
+        <div className="flex gap-3">
+          <button onClick={() => setView("home")} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">Done</button>
+          <button onClick={startReview} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">New round</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- TRANSLATE ----------
+function Translate({ onAddCard }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem("anthropic_key") || ""; } catch (e) { return ""; } });
+  const [keyInput, setKeyInput] = useState("");
+  const saveKey = () => { try { localStorage.setItem("anthropic_key", keyInput.trim()); } catch (e) {} setApiKey(keyInput.trim()); setKeyInput(""); };
+
+  const run = async () => {
+    if (!input.trim()) return;
+    setLoading(true); setError(""); setResult(null);
+    try {
+      const prompt = `You are a Japanese tutor. Break down this Japanese sentence for a learner. Respond with ONLY valid JSON, no markdown, no preamble.\n\nSentence: "${input.trim()}"\n\nJSON shape:\n{\n  "translation": "natural English translation",\n  "reading": "full sentence in romaji",\n  "tokens": [ { "jp": "word", "reading": "romaji", "meaning": "English", "role": "grammar role" } ],\n  "notes": "one short grammar note or empty string"\n}`;
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      });
+      if (!res.ok) throw new Error("api " + res.status);
+      const data = await res.json();
+      const text = data.content.map((i) => (i.type === "text" ? i.text : "")).join("");
+      setResult(JSON.parse(text.replace(/```json|```/g, "").trim()));
+    } catch (e) { setError("Couldn't translate — check your API key and the sentence, then try again."); } finally { setLoading(false); }
+  };
+
+  if (!apiKey) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-sm text-amber-800 flex flex-col gap-2">
+          <div className="flex items-center gap-2 font-medium"><Icon name="key" size={16} /> Translator setup</div>
+          <p>The step-by-step translator runs on Claude. To use it here, paste your own Anthropic API key — it's stored only in this browser, on your device.</p>
+          <p>Get a key at console.anthropic.com → API Keys. Everything else in the app works without a key.</p>
+        </div>
+        <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} placeholder="sk-ant-…" className="w-full p-3 rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
+        <button onClick={saveKey} disabled={!keyInput.trim()} className="py-3 rounded-2xl bg-rose-500 text-white font-medium disabled:opacity-50">Save key</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="日本語の文を貼り付けてください…  (Paste a Japanese sentence)" rows={3} className="w-full p-4 rounded-2xl border border-stone-200 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-rose-300 text-stone-800" />
+      <button onClick={run} disabled={loading} className="py-3 rounded-2xl bg-rose-500 text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+        {loading ? <><Icon name="refresh" className="animate-spin" /> Breaking it down…</> : <><Icon name="languages" /> Translate step by step</>}
+      </button>
+      {error && <div className="text-sm text-rose-500 text-center">{error}</div>}
+      {result && (
+        <div className="flex flex-col gap-4">
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100">
+            <div className="text-xs uppercase tracking-wide text-rose-400 mb-1">Translation</div>
+            <div className="text-stone-800 font-medium">{result.translation}</div>
+            {result.reading && <div className="text-sm text-stone-400 mt-1 italic">{result.reading}</div>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="text-xs uppercase tracking-wide text-stone-400">Word by word</div>
+            {result.tokens?.map((t, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-stone-200">
+                <div className="text-2xl font-medium text-stone-800 min-w-12">{t.jp}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-stone-700"><span className="text-rose-500">{t.reading}</span> — {t.meaning}</div>
+                  <div className="text-xs text-stone-400">{t.role}</div>
+                </div>
+                <button onClick={() => onAddCard({ word: t.jp, reading: t.reading, meaning: t.meaning })} className="p-2 rounded-full hover:bg-stone-100 text-stone-400 shrink-0" title="Save to My Words"><Icon name="plus" size={16} /></button>
+              </div>
+            ))}
+          </div>
+          {result.notes && <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-sm text-amber-800">💡 {result.notes}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- MY WORDS ----------
+function MyWords({ cards, setCards, loading }) {
+  const [mode, setMode] = useState("list");
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [showStroke, setShowStroke] = useState(false);
+  const [studyDeck, setStudyDeck] = useState([]);
+  const startStudy = () => { setStudyDeck(shuffle(cards)); setIdx(0); setFlipped(false); setShowStroke(false); setMode("study"); };
+  const remove = (id) => setCards(cards.filter((c) => c.id !== id));
+
+  if (loading) return <div className="text-center text-stone-400 py-10">Loading your words…</div>;
+  if (!cards.length) {
+    return (
+      <div className="text-center text-stone-400 py-16 flex flex-col items-center gap-3">
+        <Icon name="layers" size={40} className="text-stone-300" />
+        <div>No saved words yet.</div>
+        <div className="text-sm">Save words from the Translate tab or Kanji learning with the + button.</div>
+      </div>
+    );
+  }
+
+  if (mode === "study") {
+    const card = studyDeck[idx];
+    const single = [...card.word].length === 1;
+    const next = () => { setShowStroke(false); if (idx + 1 >= studyDeck.length) { setMode("list"); return; } setIdx(idx + 1); setFlipped(false); };
+    return (
+      <div className="flex flex-col items-center gap-5">
+        <div className="text-sm text-stone-400">{idx + 1} of {studyDeck.length}</div>
+        {showStroke ? (
+          <WritePanel char={[...card.word][0]} onClose={() => setShowStroke(false)} />
+        ) : (
+          <>
+            <button onClick={() => setFlipped(!flipped)} className="w-full max-w-sm aspect-[4/3] rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition">
+              {!flipped ? (<div className="text-6xl font-medium text-stone-800">{card.word}</div>) : (
+                <div className="text-center"><div className="text-2xl text-rose-500">{card.reading}</div><div className="text-lg text-stone-700 mt-2">{card.meaning}</div></div>
+              )}
+              <div className="text-xs text-stone-300 mt-2">tap to flip</div>
+            </button>
+            <div className="flex gap-3 items-center">
+              <button onClick={() => speak(card.word)} className="p-3 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
+              {single && (<button onClick={() => setShowStroke(true)} className="p-3 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order"><Icon name="brush" /></button>)}
+              <button onClick={next} className="px-8 py-3 rounded-2xl bg-rose-500 text-white font-medium">Next</button>
+            </div>
+            <button onClick={() => setMode("list")} className="text-sm text-stone-400">End session</button>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="text-center text-sm text-stone-400 -mb-1">Words you've saved</div>
+      <button onClick={startStudy} className="py-3 rounded-2xl bg-rose-500 text-white font-medium flex items-center justify-center gap-2"><Icon name="book" /> Study {cards.length} word{cards.length > 1 ? "s" : ""}</button>
+      <div className="flex flex-col gap-2">
+        {cards.map((c) => (
+          <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-stone-200">
+            <div className="text-2xl font-medium text-stone-800 min-w-12">{c.word}</div>
+            <div className="flex-1 min-w-0"><div className="text-sm text-rose-500">{c.reading}</div><div className="text-sm text-stone-600 truncate">{c.meaning}</div></div>
+            <button onClick={() => remove(c.id)} className="p-2 rounded-full hover:bg-rose-50 text-stone-300 hover:text-rose-400"><Icon name="trash" size={16} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- APP ----------
+function App() {
+  const [tab, setTab] = useState("study");
+  const [cards, setCards] = useState([]);
+  const [progress, setProgress] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try { const r = await window.storage.get("deck"); if (r?.value) setCards(JSON.parse(r.value)); } catch (e) {}
+      try { const p = await window.storage.get("progress"); if (p?.value) setProgress(JSON.parse(p.value)); } catch (e) {}
+      setLoading(false);
+    })();
+  }, []);
+
+  const persist = useCallback(async (next) => { setCards(next); try { await window.storage.set("deck", JSON.stringify(next)); } catch (e) {} }, []);
+
+  const recordResult = useCallback((key, got) => {
+    setProgress((prev) => {
+      const cur = prev[key] || { box: 0, n: 0, due: 0 };
+      const box = got ? Math.min(5, cur.box + 1) : 1;
+      const due = Date.now() + BOX_INTERVALS[box];
+      const upd = { ...prev, [key]: { box, n: cur.n + 1, due } };
+      window.storage.set("progress", JSON.stringify(upd)).catch(() => {});
+      return upd;
+    });
+  }, []);
+
+  const addCard = useCallback((card) => {
+    setCards((prev) => {
+      if (prev.some((c) => c.word === card.word && c.meaning === card.meaning)) { setToast("Already saved"); setTimeout(() => setToast(""), 1500); return prev; }
+      const next = [{ ...card, id: Date.now() + Math.random() }, ...prev];
+      window.storage.set("deck", JSON.stringify(next)).catch(() => {});
+      setToast("Saved to My Words ✓"); setTimeout(() => setToast(""), 1500);
+      return next;
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-stone-50 text-stone-800" style={{ fontFamily: "system-ui, sans-serif" }}>
+      <div className="max-w-lg mx-auto px-4 pb-24 pt-6">
+        <header className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-stone-800 tracking-tight">日本語</h1>
+          <p className="text-sm text-stone-400">Your Japanese study companion</p>
+        </header>
+        {tab === "study" && <Study onAddCard={addCard} progress={progress} recordResult={recordResult} />}
+        {tab === "translate" && <Translate onAddCard={addCard} />}
+        {tab === "words" && <MyWords cards={cards} setCards={persist} loading={loading} />}
+      </div>
+      {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200">
+        <div className="max-w-lg mx-auto flex">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)} className={`flex-1 py-3 flex flex-col items-center gap-1 transition ${active ? "text-rose-500" : "text-stone-400"}`}>
+                <Icon name={t.icon} size={22} />
+                <span className="text-xs font-medium">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
