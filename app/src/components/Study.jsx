@@ -5,7 +5,15 @@ import WriteCard from "./WriteCard.jsx";
 import VariantNote from "./VariantNote.jsx";
 import { HIRAGANA, KATAKANA } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
+import { RTK_200, STAGE_SIZE } from "../data/rtk.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
+
+const SETS = {
+  hiragana: { label: "Hiragana", source: HIRAGANA, kanjiLike: false },
+  katakana: { label: "Katakana", source: KATAKANA, kanjiLike: false },
+  kanji: { label: "Kanji", source: KANJI, kanjiLike: true },
+  rtk: { label: "RTK 1–200", source: RTK_200, kanjiLike: true },
+};
 
 export default function Study({ onAddCard, progress, recordResult }) {
   const [set, setSet] = useState("hiragana");
@@ -20,8 +28,8 @@ export default function Study({ onAddCard, progress, recordResult }) {
   const [results, setResults] = useState([]);
   const baselineKnown = useRef(new Set());
 
-  const isKanji = set === "kanji";
-  const source = set === "hiragana" ? HIRAGANA : set === "katakana" ? KATAKANA : KANJI;
+  const isKanji = SETS[set].kanjiLike;
+  const source = SETS[set].source;
   const dirs = isKanji ? ["rec"] : ["rec", "rcl"];
 
   const boxOf = (ch, d) => progress[`${ch}|${d}`]?.box || 0;
@@ -51,11 +59,12 @@ export default function Study({ onAddCard, progress, recordResult }) {
   const changeSet = (s) => { setSet(s); setView("home"); };
   const startLearn = (i) => { setLearnIdx(i); setLearnFlipped(false); setView("learn"); };
 
-  const startReview = () => {
+  const startReview = (subset) => {
+    const pool0 = subset || source;
     baselineKnown.current = new Set(source.filter((it) => statusOf(it[0]) === "known").map((it) => it[0]));
     const t = Date.now();
     const items = [];
-    source.forEach((it) => dirs.forEach((d) => { const st = progress[`${it[0]}|${d}`]; items.push({ item: it, dir: d, box: st?.box ?? 0, due: st?.due ?? 0, isNew: !st }); }));
+    pool0.forEach((it) => dirs.forEach((d) => { const st = progress[`${it[0]}|${d}`]; items.push({ item: it, dir: d, box: st?.box ?? 0, due: st?.due ?? 0, isNew: !st }); }));
     let pool = items.filter((x) => x.isNew || x.due <= t);
     if (!pool.length) pool = items.slice();
     const ordered = shuffle(pool).sort((a, b) => a.box - b.box).slice(0, SESSION_SIZE);
@@ -85,11 +94,15 @@ export default function Study({ onAddCard, progress, recordResult }) {
 
   // ----- HOME / MAP -----
   if (view === "home") {
+    // Kanji-like sets are shown in stages of STAGE_SIZE so 200 tiles feel like levels, not a wall.
+    const stages = isKanji
+      ? Array.from({ length: Math.ceil(source.length / STAGE_SIZE) }, (_, s) => source.slice(s * STAGE_SIZE, (s + 1) * STAGE_SIZE))
+      : [source];
     return (
       <div className="flex flex-col items-center gap-5">
-        <div className="flex gap-2">
-          {["hiragana", "katakana", "kanji"].map((s) => (
-            <button key={s} onClick={() => changeSet(s)} className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition ${set === s ? "bg-rose-500 text-white shadow" : "bg-white text-stone-600 border border-stone-200"}`}>{s}</button>
+        <div className="flex gap-2 flex-wrap justify-center">
+          {Object.entries(SETS).map(([s, cfg]) => (
+            <button key={s} onClick={() => changeSet(s)} className={`px-4 py-2 rounded-full text-sm font-medium transition ${set === s ? "bg-rose-500 text-white shadow" : "bg-white text-stone-600 border border-stone-200"}`}>{cfg.label}</button>
           ))}
         </div>
         <div className="flex flex-col items-center gap-0.5">
@@ -99,9 +112,26 @@ export default function Study({ onAddCard, progress, recordResult }) {
           </div>
           {learningCount > 0 && <span className="text-xs text-stone-400">{learningCount} in progress</span>}
         </div>
-        <div className="w-full grid gap-1.5" style={{ gridTemplateColumns: isKanji ? "repeat(9, minmax(0,1fr))" : "repeat(8, minmax(0,1fr))" }}>
-          {source.map((it, i) => (
-            <button key={it[0]} onClick={() => startLearn(i)} className={`aspect-square rounded-md flex items-center justify-center ${isKanji ? "text-sm" : "text-base"} ${tileClass(it[0])}`}>{it[0]}</button>
+        {set === "rtk" && (
+          <div className="text-[11px] text-stone-400 text-center max-w-sm -mt-2">Ordered like “Remembering the Kanji” — each character builds on parts from earlier ones.</div>
+        )}
+        <div className="w-full flex flex-col gap-4">
+          {stages.map((stage, si) => (
+            <div key={si} className="w-full flex flex-col gap-1.5">
+              {isKanji && (
+                <div className="flex items-center justify-between px-0.5">
+                  <span className="text-xs font-medium text-stone-500">Stage {si + 1}
+                    <span className="text-stone-300 font-normal"> · {stage.filter((it) => statusOf(it[0]) === "known").length}/{stage.length} known</span>
+                  </span>
+                  <button onClick={() => startReview(stage)} className="text-[11px] font-medium text-rose-500 px-2 py-0.5 rounded-full bg-rose-50">Review stage</button>
+                </div>
+              )}
+              <div className="w-full grid gap-1.5" style={{ gridTemplateColumns: isKanji ? "repeat(10, minmax(0,1fr))" : "repeat(8, minmax(0,1fr))" }}>
+                {stage.map((it) => (
+                  <button key={it[0]} onClick={() => startLearn(source.indexOf(it))} className={`aspect-square rounded-md flex items-center justify-center ${isKanji ? "text-sm" : "text-base"} ${tileClass(it[0])}`}>{it[0]}</button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <div className="flex items-center gap-2 text-[11px] text-stone-400">
@@ -121,7 +151,7 @@ export default function Study({ onAddCard, progress, recordResult }) {
             <div className="text-base font-medium text-stone-800">Learn</div>
             <div className="text-[11px] text-stone-400">browse freely</div>
           </button>
-          <button onClick={startReview} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
+          <button onClick={() => startReview()} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
             <div className="text-rose-500 flex justify-center mb-1"><Icon name="cards" size={22} /></div>
             <div className="text-base font-medium text-stone-800">Review</div>
             <div className="text-[11px] text-stone-400">{dueCount} due</div>
@@ -248,7 +278,7 @@ export default function Study({ onAddCard, progress, recordResult }) {
         {results.some((r) => !r) && (<button onClick={redoMissed} className="w-full py-3 rounded-2xl bg-rose-500 text-white text-sm font-medium">Redo the {results.filter((r) => !r).length} you missed</button>)}
         <div className="flex gap-3">
           <button onClick={() => setView("home")} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">Done</button>
-          <button onClick={startReview} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">New round</button>
+          <button onClick={() => startReview()} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">New round</button>
         </div>
       </div>
     </div>

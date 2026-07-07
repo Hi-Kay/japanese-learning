@@ -10,7 +10,7 @@ export default function TraceCanvas({ char }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden">
+      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden" style={{ touchAction: "none", overscrollBehavior: "none" }}>
         {guide && guideOk && (<img src={url} alt="" onError={() => setGuideOk(false)} className="absolute inset-0 w-full h-full object-contain p-2 opacity-20 pointer-events-none" />)}
         <svg ref={svgRef} viewBox="0 0 109 109" className="absolute inset-0 w-full h-full cursor-crosshair" style={{ touchAction: "none" }} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onPointerLeave={end}>
           <line x1="54.5" y1="0" x2="54.5" y2="109" stroke="#f1efed" strokeWidth="1" strokeDasharray="3 3" />

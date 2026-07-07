@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import WritePanel from "./WritePanel.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
@@ -17,10 +17,16 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
   const [flipped, setFlipped] = useState(false);
   const [sess, setSess] = useState({ right: 0, total: 0 });
   const [results, setResults] = useState([]);
+  const [listenMode, setListenMode] = useState(false);
   const baselineKnown = useRef(new Set());
 
   const category = VOCAB_CATEGORIES.find((c) => c.id === catId);
   const source = category.items;
+
+  // In listening mode the prompt is audio, so play it as each new card appears.
+  useEffect(() => {
+    if (view === "review" && listenMode && deck.length && !flipped) speak(deck[rIdx].jp);
+  }, [view, listenMode, deck, rIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boxOf = (jp) => progress[keyOf(jp)]?.box || 0;
   const statusOf = (jp) => (boxOf(jp) >= MASTER_BOX ? "known" : progress[keyOf(jp)] ? "learning" : "new");
@@ -41,7 +47,8 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
   const changeCat = (id) => { setCatId(id); setView("home"); };
   const startLearn = (i) => { setLearnIdx(i); setLearnFlipped(false); setView("learn"); };
 
-  const startReview = () => {
+  const startReview = (listen = false) => {
+    setListenMode(listen);
     baselineKnown.current = new Set(source.filter((it) => statusOf(it.jp) === "known").map((it) => it.jp));
     const t = Date.now();
     const items = source.map((it) => { const st = progress[keyOf(it.jp)]; return { item: it, box: st?.box ?? 0, due: st?.due ?? 0, isNew: !st }; });
@@ -98,16 +105,21 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+        <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
           <button onClick={() => startLearn(0)} className="border border-stone-200 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
             <div className="text-stone-700 flex justify-center mb-1"><Icon name="book" size={22} /></div>
             <div className="text-base font-medium text-stone-800">Learn</div>
             <div className="text-[11px] text-stone-400">browse freely</div>
           </button>
-          <button onClick={startReview} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
+          <button onClick={() => startReview(false)} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
             <div className="text-rose-500 flex justify-center mb-1"><Icon name="cards" size={22} /></div>
             <div className="text-base font-medium text-stone-800">Review</div>
             <div className="text-[11px] text-stone-400">{dueCount} due</div>
+          </button>
+          <button onClick={() => startReview(true)} className="border border-stone-200 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
+            <div className="text-stone-700 flex justify-center mb-1"><Icon name="volume" size={22} /></div>
+            <div className="text-base font-medium text-stone-800">Listen</div>
+            <div className="text-[11px] text-stone-400">hear &amp; recall</div>
           </button>
         </div>
       </div>
@@ -175,10 +187,17 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
           <span className="text-xs text-stone-400">{rIdx + 1} of {deck.length}</span>
           <span className="w-12" />
         </div>
-        <div className="text-xs text-stone-400">What does this mean?</div>
+        <div className="text-xs text-stone-400">{listenMode ? "Listen — what was said?" : "What does this mean?"}</div>
         <button onClick={() => setFlipped(!flipped)} className="w-full max-w-sm min-h-40 rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition px-5 py-6 text-center">
-          {!flipped ? (<div className="text-4xl font-medium text-stone-800">{it.jp}</div>) : (
+          {!flipped ? (
+            listenMode ? (
+              <span onClick={(e) => { e.stopPropagation(); speak(it.jp); }} className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center" title="Play again"><Icon name="volume" size={30} /></span>
+            ) : (
+              <div className="text-4xl font-medium text-stone-800">{it.jp}</div>
+            )
+          ) : (
             <div>
+              {listenMode && <div className="text-3xl font-medium text-stone-800 mb-1">{it.jp}</div>}
               <div className="text-2xl font-medium text-rose-500">{it.reading}</div>
               <div className="text-base text-stone-600 mt-1">{it.meaning}</div>
               {it.example && (
@@ -190,7 +209,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
               )}
             </div>
           )}
-          <div className="text-xs text-stone-300 mt-1">{flipped ? "" : "tap to flip"}</div>
+          <div className="text-xs text-stone-300 mt-1">{flipped ? "" : listenMode ? "tap speaker to replay · tap card to reveal" : "tap to flip"}</div>
         </button>
         <div className="flex items-center gap-3">
           <button onClick={() => speak(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
@@ -217,7 +236,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult }) {
         {results.some((r) => !r) && (<button onClick={redoMissed} className="w-full py-3 rounded-2xl bg-rose-500 text-white text-sm font-medium">Redo the {results.filter((r) => !r).length} you missed</button>)}
         <div className="flex gap-3">
           <button onClick={() => setView("home")} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">Done</button>
-          <button onClick={startReview} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">New round</button>
+          <button onClick={() => startReview(listenMode)} className="px-6 py-2.5 rounded-full border border-stone-200 text-stone-600 text-sm font-medium">New round</button>
         </div>
       </div>
     </div>

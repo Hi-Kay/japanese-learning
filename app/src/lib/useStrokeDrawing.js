@@ -12,6 +12,21 @@ export function useStrokeDrawing(resetKey) {
 
   useEffect(() => { setStrokes([]); setCurrent(null); currentRef.current = null; drawing.current = false; }, [resetKey]);
 
+  // iOS Safari doesn't reliably honor touch-action:none on <svg>, so a drawing
+  // gesture scrolls the page instead. Block the native touch defaults directly —
+  // React listeners are passive, so this needs addEventListener with passive:false.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const block = (e) => e.preventDefault();
+    el.addEventListener("touchstart", block, { passive: false });
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", block);
+      el.removeEventListener("touchmove", block);
+    };
+  }, [resetKey]);
+
   const point = (e) => {
     const rect = svgRef.current.getBoundingClientRect();
     return { x: ((e.clientX - rect.left) / rect.width) * 109, y: ((e.clientY - rect.top) / rect.height) * 109 };

@@ -10,7 +10,7 @@ export default function WriteCard({ char, revealed }) {
 
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden">
+      <div className="relative w-56 h-56 rounded-2xl bg-white border border-stone-200 overflow-hidden" style={{ touchAction: "none", overscrollBehavior: "none" }}>
         {revealed && guideOk && (<img src={url} alt="" onError={() => setGuideOk(false)} className="absolute inset-0 w-full h-full object-contain p-2 opacity-40 pointer-events-none" />)}
         {revealed && !guideOk && (<div className="absolute inset-0 flex items-center justify-center text-8xl text-stone-200 pointer-events-none">{char}</div>)}
         <svg ref={svgRef} viewBox="0 0 109 109" className="absolute inset-0 w-full h-full cursor-crosshair" style={{ touchAction: "none" }} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onPointerLeave={end}>

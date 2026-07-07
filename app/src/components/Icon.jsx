@@ -18,6 +18,7 @@ export default function Icon({ name, size = 18, className = "" }) {
     clock: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>,
     compass: <><circle cx="12" cy="12" r="10" /><path d="m16 8-2 6-6 2 2-6z" /></>,
     hand: <><path d="M18 11V6a2 2 0 0 0-4 0" /><path d="M14 10V4a2 2 0 0 0-4 0v2" /><path d="M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M6 14v-1a2 2 0 0 0-4 0v3a8 8 0 0 0 8 8h2a8 8 0 0 0 8-8v-3a2 2 0 0 0-4 0v1" /></>,
+    cup: <><path d="M17 8h1a4 4 0 1 1 0 8h-1" /><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" /><path d="M6 2v2" /><path d="M10 2v2" /><path d="M14 2v2" /></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
