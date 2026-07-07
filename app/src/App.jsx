@@ -29,9 +29,15 @@ export default function App() {
     setLoading(false);
   }, []);
 
-  const persist = useCallback((next) => {
-    setCards(next);
-    storage.setJSON("deck", next);
+  // Persist via effects, never inside setState updaters — updaters must stay pure
+  // (StrictMode double-invokes them; see the duplicated-stroke bug in useStrokeDrawing).
+  useEffect(() => { if (!loading) storage.setJSON("deck", cards); }, [cards, loading]);
+  useEffect(() => { if (!loading) storage.setJSON("progress", progress); }, [progress, loading]);
+  useEffect(() => { if (!loading) storage.setJSON("streak", streak); }, [streak, loading]);
+
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 1500);
   }, []);
 
   const recordResult = useCallback((key, got) => {
@@ -39,29 +45,19 @@ export default function App() {
       const cur = prev[key] || { box: 0, n: 0, due: 0 };
       const box = got ? Math.min(5, cur.box + 1) : 1;
       const due = Date.now() + BOX_INTERVALS[box];
-      const upd = { ...prev, [key]: { box, n: cur.n + 1, due } };
-      storage.setJSON("progress", upd);
-      return upd;
+      return { ...prev, [key]: { box, n: cur.n + 1, due } };
     });
-    setStreak((prev) => {
-      const upd = bumpStreak(prev);
-      storage.setJSON("streak", upd);
-      return upd;
-    });
+    setStreak((prev) => bumpStreak(prev));
   }, []);
 
   const addCard = useCallback((card) => {
-    setCards((prev) => {
-      if (prev.some((c) => c.word === card.word && c.meaning === card.meaning)) {
-        setToast("Already saved"); setTimeout(() => setToast(""), 1500);
-        return prev;
-      }
-      const next = [{ ...card, id: Date.now() + Math.random() }, ...prev];
-      storage.setJSON("deck", next);
-      setToast("Saved to My Words ✓"); setTimeout(() => setToast(""), 1500);
-      return next;
-    });
-  }, []);
+    if (cards.some((c) => c.word === card.word && c.meaning === card.meaning)) {
+      showToast("Already saved");
+      return;
+    }
+    setCards((prev) => [{ ...card, id: Date.now() + Math.random() }, ...prev]);
+    showToast("Saved to My Words ✓");
+  }, [cards, showToast]);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800">
@@ -73,7 +69,7 @@ export default function App() {
         </header>
         {tab === "study" && <Study onAddCard={addCard} progress={progress} recordResult={recordResult} />}
         {tab === "vocab" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} />}
-        {tab === "words" && <MyWords cards={cards} setCards={persist} loading={loading} />}
+        {tab === "words" && <MyWords cards={cards} setCards={setCards} loading={loading} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
       </div>
       {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">
