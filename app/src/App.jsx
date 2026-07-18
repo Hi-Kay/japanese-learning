@@ -2,20 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import Icon from "./components/Icon.jsx";
 import Study from "./components/Study.jsx";
 import Vocabulary from "./components/Vocabulary.jsx";
-import MyWords from "./components/MyWords.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import { storage } from "./lib/storage.js";
 import { BOX_INTERVALS } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
 
 const TABS = [
-  { id: "study", label: "Study", icon: "book" },
-  { id: "vocab", label: "Vocabulary", icon: "globe" },
-  { id: "words", label: "My Words", icon: "layers" },
+  { id: "kana", label: "Kana", icon: "book" },
+  { id: "kanji", label: "Kanji", icon: "brush" },
+  { id: "words", label: "Words", icon: "globe" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("study");
+  const [tab, setTab] = useState("kana");
   const [cards, setCards] = useState([]);
   const [progress, setProgress] = useState({});
   const [streak, setStreak] = useState(DEFAULT_STREAK);
@@ -50,6 +49,10 @@ export default function App() {
     setStreak((prev) => bumpStreak(prev));
   }, []);
 
+  const removeCard = useCallback((id) => {
+    setCards((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
   const addCard = useCallback((card) => {
     if (cards.some((c) => c.word === card.word && c.meaning === card.meaning)) {
       showToast("Already saved");
@@ -67,9 +70,9 @@ export default function App() {
           <p className="text-sm text-stone-400">Your Japanese study companion</p>
           <StreakBadge streak={streak} />
         </header>
-        {tab === "study" && <Study onAddCard={addCard} progress={progress} recordResult={recordResult} />}
-        {tab === "vocab" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} />}
-        {tab === "words" && <MyWords cards={cards} setCards={setCards} loading={loading} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
+        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
+        {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
+        {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} />}
       </div>
       {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">

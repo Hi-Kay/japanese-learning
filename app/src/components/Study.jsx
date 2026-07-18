@@ -15,8 +15,8 @@ const SETS = {
   rtk: { label: "RTK 1–200", source: RTK_200, kanjiLike: true },
 };
 
-export default function Study({ onAddCard, progress, recordResult }) {
-  const [set, setSet] = useState("hiragana");
+export default function Study({ onAddCard, progress, recordResult, setIds }) {
+  const [set, setSet] = useState(setIds[0]);
   const [view, setView] = useState("home");
   const [learnIdx, setLearnIdx] = useState(0);
   const [learnFlipped, setLearnFlipped] = useState(false);
@@ -100,11 +100,13 @@ export default function Study({ onAddCard, progress, recordResult }) {
       : [source];
     return (
       <div className="flex flex-col items-center gap-5">
-        <div className="flex gap-2 flex-wrap justify-center">
-          {Object.entries(SETS).map(([s, cfg]) => (
-            <button key={s} onClick={() => changeSet(s)} className={`px-4 py-2 rounded-full text-sm font-medium transition ${set === s ? "bg-rose-500 text-white shadow" : "bg-white text-stone-600 border border-stone-200"}`}>{cfg.label}</button>
-          ))}
-        </div>
+        {setIds.length > 1 && (
+          <div className="flex gap-2 flex-wrap justify-center">
+            {setIds.map((s) => (
+              <button key={s} onClick={() => changeSet(s)} className={`px-4 py-2 rounded-full text-sm font-medium transition ${set === s ? "bg-rose-500 text-white shadow" : "bg-white text-stone-600 border border-stone-200"}`}>{SETS[s].label}</button>
+            ))}
+          </div>
+        )}
         <div className="flex flex-col items-center gap-0.5">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-semibold text-emerald-500">{knownCount}</span>
@@ -115,6 +117,10 @@ export default function Study({ onAddCard, progress, recordResult }) {
         {set === "rtk" && (
           <div className="text-[11px] text-stone-400 text-center max-w-sm -mt-2">Ordered like “Remembering the Kanji” — each character builds on parts from earlier ones.</div>
         )}
+        <button onClick={() => startReview()} className="w-full max-w-sm py-4 rounded-2xl bg-rose-500 text-white font-medium flex items-center justify-center gap-2 shadow active:scale-[0.99] transition">
+          <Icon name="cards" size={20} /> Review <span className="text-rose-100 text-sm font-normal">· {dueCount} due</span>
+        </button>
+        <div className="text-[11px] text-stone-400 -mt-3">Tap any character below to study it</div>
         <div className="w-full flex flex-col gap-4">
           {stages.map((stage, si) => (
             <div key={si} className="w-full flex flex-col gap-1.5">
@@ -145,18 +151,6 @@ export default function Study({ onAddCard, progress, recordResult }) {
           </span>
           <span>known</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-          <button onClick={() => startLearn(0)} className="border border-stone-200 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
-            <div className="text-stone-700 flex justify-center mb-1"><Icon name="book" size={22} /></div>
-            <div className="text-base font-medium text-stone-800">Learn</div>
-            <div className="text-[11px] text-stone-400">browse freely</div>
-          </button>
-          <button onClick={() => startReview()} className="border-2 border-rose-300 rounded-2xl p-4 text-center bg-white active:scale-[0.99] transition">
-            <div className="text-rose-500 flex justify-center mb-1"><Icon name="cards" size={22} /></div>
-            <div className="text-base font-medium text-stone-800">Review</div>
-            <div className="text-[11px] text-stone-400">{dueCount} due</div>
-          </button>
-        </div>
       </div>
     );
   }
@@ -170,7 +164,7 @@ export default function Study({ onAddCard, progress, recordResult }) {
     return (
       <div className="flex flex-col items-center gap-5">
         <div className="w-full flex items-center justify-between max-w-sm">
-          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Map</button>
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           <span className="text-xs text-stone-400">{learnIdx + 1} of {source.length}</span>
           <span className="w-12" />
         </div>
@@ -218,7 +212,7 @@ export default function Study({ onAddCard, progress, recordResult }) {
     return (
       <div className="flex flex-col items-center gap-5">
         <div className="w-full flex items-center justify-between max-w-sm">
-          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Map</button>
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           <span className="text-xs text-stone-400">{rIdx + 1} of {deck.length}</span>
           <span className="w-12" />
         </div>
