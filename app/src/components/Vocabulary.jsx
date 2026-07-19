@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import WritePanel from "./WritePanel.jsx";
 import AddWordForm from "./AddWordForm.jsx";
+import SessionProgress from "./SessionProgress.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 
@@ -9,7 +10,7 @@ import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 // existing progress carries over); curated vocabulary uses v:*.
 const MINE = "mine";
 
-export default function Vocabulary({ onAddCard, progress, recordResult, cards, removeCard }) {
+export default function Vocabulary({ onAddCard, progress, recordResult, cards, removeCard, onImmersive }) {
   // Land on My Words when the user has saved words; otherwise start with real content.
   const [catId, setCatId] = useState(cards.length ? MINE : VOCAB_CATEGORIES[0].id);
   const [view, setView] = useState("home");
@@ -36,6 +37,12 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
   useEffect(() => {
     if (view === "review" && listenMode && deck.length && !flipped) speak(deck[rIdx].jp);
   }, [view, listenMode, deck, rIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hide the app header during sessions so everything fits without scrolling.
+  useEffect(() => {
+    onImmersive?.(view !== "home" || !!writeChar);
+    return () => onImmersive?.(false);
+  }, [view, writeChar, onImmersive]);
 
   const boxOf = (jp) => progress[keyOf(jp)]?.box || 0;
   const statusOf = (jp) => (boxOf(jp) >= MASTER_BOX ? "known" : progress[keyOf(jp)] ? "learning" : "new");
@@ -209,11 +216,10 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
     if (!deck.length) return null;
     const it = deck[rIdx];
     return (
-      <div className="flex flex-col items-center gap-5">
-        <div className="w-full flex items-center justify-between max-w-sm">
-          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
-          <span className="text-xs text-stone-400">{rIdx + 1} of {deck.length}</span>
-          <span className="w-12" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-full flex items-center justify-between gap-3 max-w-sm">
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1 shrink-0"><Icon name="back" size={16} /> Back</button>
+          <SessionProgress current={rIdx} total={deck.length} />
         </div>
         <div className="text-xs text-stone-400">{listenMode ? "Listen — what was said?" : "What does this mean?"}</div>
         <button onClick={() => setFlipped(!flipped)} className="w-full max-w-sm min-h-40 rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition px-5 py-6 text-center">
@@ -248,7 +254,6 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
             <button onClick={() => grade(true)} className="py-3 rounded-2xl bg-emerald-500 text-white font-medium flex items-center justify-center gap-2"><Icon name="check" /> Got it</button>
           </div>
         )}
-        <div className="text-sm text-stone-400">{sess.right}/{sess.total} this round</div>
       </div>
     );
   }

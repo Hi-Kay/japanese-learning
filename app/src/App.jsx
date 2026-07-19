@@ -20,6 +20,8 @@ export default function App() {
   const [streak, setStreak] = useState(DEFAULT_STREAK);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  // During a session the header is hidden so small phones fit everything without scrolling.
+  const [immersive, setImmersive] = useState(false);
 
   useEffect(() => {
     setCards(storage.getJSON("deck", []));
@@ -64,15 +66,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800">
-      <div className="max-w-lg mx-auto px-4 pb-24 pt-6">
-        <header className="flex flex-col items-center mb-6 gap-2">
-          <h1 className="text-3xl font-bold text-stone-800 tracking-tight">日本語</h1>
-          <p className="text-sm text-stone-400">Your Japanese study companion</p>
-          <StreakBadge streak={streak} />
-        </header>
-        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
-        {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} />}
-        {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} />}
+      <div className={`max-w-lg mx-auto px-4 pb-24 ${immersive ? "pt-4" : "pt-6"}`}>
+        {!immersive && (
+          <header className="flex flex-col items-center mb-6 gap-2">
+            <h1 className="text-3xl font-bold text-stone-800 tracking-tight">日本語</h1>
+            <p className="text-sm text-stone-400">Your Japanese study companion</p>
+            <StreakBadge streak={streak} />
+          </header>
+        )}
+        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} />}
+        {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} />}
+        {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} />}
       </div>
       {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">
