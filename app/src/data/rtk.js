@@ -67,7 +67,7 @@ export const RTK_200 = [
   ["見", "see", "ken / mi(ru)"],
   ["児", "child, infant", "ji / ko"],
   ["元", "origin, source", "gen, gan / moto"],
-  ["頁", "page", "ketsu / peeji"],
+  ["頁", "page", "ketsu"],
   ["頑", "stubborn", "gan"],
   ["凡", "ordinary, mediocre", "bon / oyo(so)"],
   ["負", "defeat, carry, owe", "fu / ma(keru), o(u)"],

@@ -5,12 +5,26 @@ import AddWordForm from "./AddWordForm.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
+import { hasKanji, phraseToKana } from "../lib/romaji.js";
+
+// Words written with kanji get their reading in hiragana; romaji follows the romaji setting.
+const kanaReading = (it) => (hasKanji(it.jp) ? phraseToKana(it.reading) : null);
+function WordReading({ item, mine, showRomaji }) {
+  const kana = mine ? null : kanaReading(item);
+  if (mine) return <div className="text-2xl font-medium text-rose-500">{item.reading}</div>;
+  return (
+    <>
+      {kana && <div className="text-2xl font-medium text-rose-500">{kana}</div>}
+      {showRomaji && <div className={kana ? "text-sm text-stone-400" : "text-2xl font-medium text-rose-500"}>{item.reading}</div>}
+    </>
+  );
+}
 
 // Personal words use w:* progress keys (kept from the old My Words tab so
 // existing progress carries over); curated vocabulary uses v:*.
 const MINE = "mine";
 
-export default function Vocabulary({ onAddCard, progress, recordResult, cards, removeCard, onImmersive }) {
+export default function Vocabulary({ onAddCard, progress, recordResult, cards, removeCard, onImmersive, showRomaji }) {
   // Land on My Words when the user has saved words; otherwise start with real content.
   const [catId, setCatId] = useState(cards.length ? MINE : VOCAB_CATEGORIES[0].id);
   const [view, setView] = useState("home");
@@ -180,7 +194,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
             <div className="text-4xl font-medium text-stone-800">{it.jp}</div>
           ) : (
             <div>
-              <div className="text-2xl font-medium text-rose-500">{it.reading}</div>
+              <WordReading item={it} mine={isMine} showRomaji={showRomaji} />
               <div className="text-base text-stone-600 mt-1">{it.meaning}</div>
               {it.example && (
                 <div className="mt-4 pt-4 border-t border-stone-100 text-left">
@@ -201,7 +215,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
         <div className="flex items-center gap-3">
           <button onClick={() => speak(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
           {single && (<button onClick={() => setWriteChar(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order & writing"><Icon name="brush" /></button>)}
-          {!isMine && (<button onClick={() => onAddCard({ word: it.jp, reading: it.reading, meaning: it.meaning })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
+          {!isMine && (<button onClick={() => onAddCard({ word: it.jp, reading: kanaReading(it) ?? it.reading, meaning: it.meaning })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
         </div>
         <div className="flex gap-3 w-full max-w-sm">
           <button onClick={goPrev} className="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Previous</button>
@@ -232,7 +246,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
           ) : (
             <div>
               {listenMode && <div className="text-3xl font-medium text-stone-800 mb-1">{it.jp}</div>}
-              <div className="text-2xl font-medium text-rose-500">{it.reading}</div>
+              <WordReading item={it} mine={isMine} showRomaji={showRomaji} />
               <div className="text-base text-stone-600 mt-1">{it.meaning}</div>
               {it.example && (
                 <div className="mt-4 pt-4 border-t border-stone-100 text-left">

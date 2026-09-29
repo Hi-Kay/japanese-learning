@@ -1,8 +1,9 @@
 # 日本語 — Japanese Learning
 
-A small, installable web app (PWA) for learning Japanese from scratch: the two kana
-alphabets, the first few hundred kanji, and everyday vocabulary — with spaced
-repetition, animated stroke order, and handwriting practice.
+A small, installable web app (PWA) for learning Japanese from scratch — with a focus
+on being able to say and understand simple sentences. It covers the core sentence
+patterns, everyday vocabulary, the two kana alphabets, and the first few hundred kanji,
+with spaced repetition, listening practice, and handwriting practice.
 
 **Live app: https://hi-kay.github.io/japanese-learning/**
 
@@ -13,18 +14,53 @@ works offline, needs no account, and sends no data anywhere.
 
 ## What's inside
 
-The app has three tabs, named after what you're learning:
+The app has four tabs, named after what you're learning:
 
 | Tab | Content |
 | --- | --- |
+| **Sentences** | 12 lessons, one core sentence pattern each (69 sentences, ~70 useful words) |
+| **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
 | **Kana** | Hiragana (46) and Katakana (46), grouped into gojūon rows of five |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
-| **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
+
+Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
+Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
+Not doing (ません) · Going somewhere (に) · Where it happens (で) · There is / I have
+(があります) · Likes (が好きです) · Wanting (たいです) · The past (ました).
 
 Vocabulary categories: Greetings & Basics, Numbers, Days & Time, Survival Phrases,
 Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 
-## How it teaches
+## The learning method
+
+The Sentences section is built on a few well-supported principles:
+
+- **Patterns, not word lists.** A small number of sentence patterns carry most everyday
+  Japanese. Each lesson teaches one, reusing a small controlled vocabulary of useful
+  words, so every sentence is understandable except the one new thing (research on
+  formulaic sequences / "chunks" links them to fluency).
+- **See the structure.** Every sentence is shown as colored blocks — topic, object,
+  place, time, ending — with the hiragana above each kanji and the English meaning
+  under each word. Japanese becomes: *blocks tagged by particles, verb last*.
+- **Teach, then test.** Each lesson opens with the pattern, the new words, and all
+  example sentences with audio — before any exercise.
+- **Recognize before you produce.** Exercises get harder as a sentence settles in:
+  *listen and pick the meaning* → *pick the missing particle* → *build it from tiles*
+  → *build it from audio alone* (a form of dictation, which trains hearing individual
+  words).
+- **Retrieval + spacing.** Every answer is checked automatically and feeds the same
+  spaced-repetition scheduler; practice testing and distributed practice are the two
+  techniques rated "high utility" in Dunlosky et al.'s 2013 review. Re-practicing on
+  the same day doesn't count as remembering — a sentence is *mastered* only once
+  you've recalled it again days later.
+- **Mistakes come back.** A wrong answer returns at the end of the session.
+- **Listen and repeat.** Every answer plays the correct sentence (with a slow
+  option) and prompts you to say it aloud — a light form of shadowing.
+- **Word order is flexible, and the app knows it.** In build exercises, any
+  grammatical ordering of the blocks before the verb is accepted (and pointed out),
+  which is itself one of the most useful things to internalize about Japanese.
+
+## How the other tabs teach
 
 - **Introduction before testing.** A character you've never seen appears first as a
   `NEW` card showing the character together with its sound/meaning — it's only
@@ -43,6 +79,9 @@ Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
   real character over your strokes to compare.
 - **Listening practice.** In Words, a *Listen* round plays audio first and you recall
   the word before revealing it.
+- **Hiragana readings.** Kanji readings (and words written with kanji) are shown in
+  hiragana; a *Romaji on/off* switch in the header controls the romaji helper line
+  everywhere in the app.
 - **One progress signal.** During a session: a progress bar and "N left". Your score
   appears once, on the summary screen, with a *Redo the ones you missed* option.
 - **Daily streak** to keep the habit going.
@@ -63,9 +102,9 @@ Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 .
 ├── app/                     # the application (Vite + React + Tailwind)
 │   ├── src/
-│   │   ├── components/      # UI: Study, Vocabulary, WritePanel, cards, icons
-│   │   ├── data/            # kana, kanji, RTK 200, vocabulary, dictionary
-│   │   └── lib/             # SRS scheduling, streak, storage, drawing hook
+│   │   ├── components/      # UI: Sentences + exercises, Study, Vocabulary, WritePanel…
+│   │   ├── data/            # sentence lessons, kana, kanji, RTK 200, vocabulary, dictionary
+│   │   └── lib/             # SRS, sentence checking, furigana, romaji→kana, storage…
 │   ├── public/              # app icons
 │   └── vite.config.js       # build + PWA manifest/service worker
 ├── .github/workflows/       # GitHub Pages deploy
@@ -109,6 +148,7 @@ backend and no account:
 | `deck` | Your saved words |
 | `streak` | Daily streak and review count |
 | `kanaMode` | Read / Write / Mix preference |
+| `showRomaji` | Romaji on/off |
 
 Because it's stored per device, progress doesn't sync between your phone and
 computer, and clearing site data resets it.

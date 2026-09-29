@@ -2,19 +2,23 @@ import { useCallback, useEffect, useState } from "react";
 import Icon from "./components/Icon.jsx";
 import Study from "./components/Study.jsx";
 import Vocabulary from "./components/Vocabulary.jsx";
+import Sentences from "./components/Sentences.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import { storage } from "./lib/storage.js";
 import { BOX_INTERVALS } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
 
 const TABS = [
+  { id: "sentences", label: "Sentences", icon: "chat" },
+  { id: "words", label: "Words", icon: "globe" },
   { id: "kana", label: "Kana", icon: "book" },
   { id: "kanji", label: "Kanji", icon: "brush" },
-  { id: "words", label: "Words", icon: "globe" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("kana");
+  const [tab, setTab] = useState("sentences");
+  const [showRomaji, setShowRomaji] = useState(() => storage.get("showRomaji") !== "0");
+  const toggleRomaji = () => setShowRomaji((v) => { storage.set("showRomaji", v ? "0" : "1"); return !v; });
   const [cards, setCards] = useState([]);
   const [progress, setProgress] = useState({});
   const [streak, setStreak] = useState(DEFAULT_STREAK);
@@ -66,20 +70,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800">
-      <div className={`max-w-lg mx-auto px-4 pb-24 ${immersive ? "pt-4" : "pt-6"}`}>
+      <div className={`max-w-lg mx-auto px-4 ${immersive ? "pt-4 pb-6" : "pt-6 pb-24"}`}>
         {!immersive && (
-          <header className="flex flex-col items-center mb-6 gap-2">
+          <header className="flex flex-col items-center mb-5 gap-2">
             <h1 className="text-3xl font-bold text-stone-800 tracking-tight">日本語</h1>
             <p className="text-sm text-stone-400">Your Japanese study companion</p>
-            <StreakBadge streak={streak} />
+            <div className="flex items-center gap-2">
+              <StreakBadge streak={streak} />
+              <button onClick={toggleRomaji} className={`px-3 py-1 rounded-full text-xs font-medium border transition ${showRomaji ? "bg-white border-stone-200 text-stone-500" : "bg-stone-800 border-stone-800 text-white"}`} title="Show or hide romaji (Latin letters) under Japanese">
+                {showRomaji ? "Romaji on" : "Romaji off"}
+              </button>
+            </div>
           </header>
         )}
-        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} />}
-        {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} />}
-        {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} />}
+        {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} />}
+        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
+        {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
+        {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} showRomaji={showRomaji} />}
       </div>
       {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom)]">
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-[env(safe-area-inset-bottom)] ${immersive ? "hidden" : ""}`}>
         <div className="max-w-lg mx-auto flex">
           {TABS.map((t) => {
             const active = tab === t.id;

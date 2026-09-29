@@ -14,11 +14,11 @@ export const shuffle = (arr) => {
   return a;
 };
 
-export const speak = (text) => {
+export const speak = (text, rate = 0.85) => {
   try {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "ja-JP";
-    u.rate = 0.85;
+    u.rate = rate;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   } catch (e) {}

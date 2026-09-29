@@ -85,7 +85,7 @@ export const VOCAB_CATEGORIES = [
       { jp: "火曜日", reading: "kayoubi", meaning: "Tuesday" },
       { jp: "水曜日", reading: "suiyoubi", meaning: "Wednesday" },
       { jp: "木曜日", reading: "mokuyoubi", meaning: "Thursday" },
-      { jp: "金曜日", reading: "kinyoubi", meaning: "Friday" },
+      { jp: "金曜日", reading: "kin'youbi", meaning: "Friday" },
       { jp: "土曜日", reading: "doyoubi", meaning: "Saturday" },
       { jp: "日曜日", reading: "nichiyoubi", meaning: "Sunday" },
       {

@@ -9,6 +9,7 @@ import { KANJI } from "../data/kanji.js";
 import { RTK_200, STAGE_SIZE } from "../data/rtk.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 import { storage } from "../lib/storage.js";
+import { readingToKana } from "../lib/romaji.js";
 
 const SETS = {
   hiragana: { label: "Hiragana", source: HIRAGANA, kanjiLike: false },
@@ -26,6 +27,17 @@ const KANA_ROWS = [
   { label: "ra", start: 38, len: 5 }, { label: "wa–n", start: 43, len: 3 },
 ];
 
+// Kanji readings in hiragana, with the romaji underneath when romaji is switched on.
+function KanjiReading({ reading, showRomaji, className = "" }) {
+  const kana = readingToKana(reading);
+  return (
+    <div className={className}>
+      <div className="text-stone-600">{kana ?? reading}</div>
+      {showRomaji && kana && <div className="text-xs text-stone-400">{reading}</div>}
+    </div>
+  );
+}
+
 // Small colored chip that tells the learner what kind of card they're looking at.
 function ModeChip({ kind }) {
   const styles = {
@@ -37,7 +49,7 @@ function ModeChip({ kind }) {
   return <span className={`text-[10px] font-semibold tracking-widest px-2.5 py-1 rounded-full ${styles[kind]}`}>{labels[kind]}</span>;
 }
 
-export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive }) {
+export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive, showRomaji }) {
   const [set, setSet] = useState(setIds[0]);
   const [view, setView] = useState("home");
   const [learnIdx, setLearnIdx] = useState(0);
@@ -220,7 +232,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           {!learnFlipped ? (<div className="text-8xl font-medium text-stone-800">{ch}</div>) : (
             <div>
               <div className="text-3xl font-medium text-rose-500">{sound}</div>
-              {isKanji && <div className="text-sm text-stone-500 mt-2">{reading}</div>}
+              {isKanji && <KanjiReading reading={reading} showRomaji={showRomaji} className="text-base mt-2" />}
             </div>
           )}
           <div className="text-xs text-stone-300 mt-1">tap to flip</div>
@@ -240,7 +252,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
         <div className="flex items-center gap-3">
           <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
           <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order & writing"><Icon name="brush" /></button>
-          {isKanji && (<button onClick={() => onAddCard({ word: ch, reading: reading, meaning: sound })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
+          {isKanji && (<button onClick={() => onAddCard({ word: ch, reading: readingToKana(reading) ?? reading, meaning: sound })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
         </div>
         <div className="flex gap-3 w-full max-w-sm">
           <button onClick={goPrev} className="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Previous</button>
@@ -268,7 +280,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
               <ModeChip kind="new" />
               <div className="text-7xl font-medium text-stone-800 mt-1">{ch}</div>
               <div className="text-2xl font-medium text-rose-500">{sound}</div>
-              {isKanji && <div className="text-sm text-stone-500">{reading}</div>}
+              {isKanji && <KanjiReading reading={reading} showRomaji={showRomaji} className="text-base" />}
               <div className="text-xs text-stone-400 mt-1">A new one — take it in, listen, then continue.</div>
             </div>
             <VariantNote char={ch} />
@@ -304,7 +316,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
               {!flipped ? (<div className="text-8xl font-medium text-stone-800">{ch}</div>) : (
                 <div className="text-center">
                   <div className="text-4xl font-medium text-rose-500">{sound}</div>
-                  {isKanji && <div className="text-base text-stone-500 mt-2">{reading}</div>}
+                  {isKanji && <KanjiReading reading={reading} showRomaji={showRomaji} className="text-lg mt-2" />}
                 </div>
               )}
               <div className="text-xs text-stone-300 mt-1">{flipped ? "" : "tap to reveal"}</div>
