@@ -4,6 +4,7 @@ import Study from "./components/Study.jsx";
 import Vocabulary from "./components/Vocabulary.jsx";
 import Sentences from "./components/Sentences.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
+import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
 import { BOX_INTERVALS } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
@@ -19,6 +20,7 @@ export default function App() {
   const [tab, setTab] = useState("sentences");
   const [showRomaji, setShowRomaji] = useState(() => storage.get("showRomaji") !== "0");
   const toggleRomaji = () => setShowRomaji((v) => { storage.set("showRomaji", v ? "0" : "1"); return !v; });
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [cards, setCards] = useState([]);
   const [progress, setProgress] = useState({});
   const [streak, setStreak] = useState(DEFAULT_STREAK);
@@ -80,7 +82,11 @@ export default function App() {
               <button onClick={toggleRomaji} className={`px-3 py-1 rounded-full text-xs font-medium border transition ${showRomaji ? "bg-white border-stone-200 text-stone-500" : "bg-stone-800 border-stone-800 text-white"}`} title="Show or hide romaji (Latin letters) under Japanese">
                 {showRomaji ? "Romaji on" : "Romaji off"}
               </button>
+              <button onClick={() => setVoiceOpen((o) => !o)} className={`px-3 py-1 rounded-full text-xs font-medium border transition flex items-center gap-1 ${voiceOpen ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-white border-stone-200 text-stone-500"}`} title="Choose the Japanese voice">
+                <Icon name="volume" size={13} /> Voice
+              </button>
             </div>
+            {voiceOpen && <VoicePicker onClose={() => setVoiceOpen(false)} />}
           </header>
         )}
         {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} />}

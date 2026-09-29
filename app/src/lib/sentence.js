@@ -48,6 +48,20 @@ export function structure(tokens) {
   return { phrases, tail };
 }
 
+// Words whose kanji a speech engine might read the wrong way (明日 as あす,
+// 家 as うち…) are spoken from their kana reading instead.
+const SPEAK_KANA = new Set(["ashita", "kinou", "ie", "nan", "nani", "nihon"]);
+const reading = (jp) => parseFurigana(jp).map((s) => s.rt ?? s.text).join("");
+const spoken = (t) => (SPEAK_KANA.has(t.id) ? reading(t.jp) : surface(t.jp)) + (t.comma ? "、" : "");
+
+export const speechText = (tokens) => tokens.map(spoken).join("") + "。";
+
+// Slow version: a short pause after each block — 私は、コーヒーを、飲みます。
+export function slowSpeechText(tokens) {
+  const { phrases, tail } = structure(tokens);
+  return [...phrases, tail].filter((g) => g.length).map((g) => g.map((i) => spoken(tokens[i])).join("").replace(/、$/, "")).join("、") + "。";
+}
+
 // Is `order` (token indices, in the learner's order) a correct sentence?
 // Phrases before the ending may come in any order, as long as each stays intact
 // and the ending stays last — that's how Japanese word order works.

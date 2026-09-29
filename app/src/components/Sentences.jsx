@@ -4,7 +4,7 @@ import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
 import SentenceSession from "./SentenceSession.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
-import { sentenceText, surface } from "../lib/sentence.js";
+import { speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
 
 const keyOf = (s) => `s:${s.id}`;
@@ -168,7 +168,7 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
         <div className="flex flex-col gap-2">
           <div className="text-xs font-medium text-stone-500">Examples · tap to hear</div>
           {l.sentences.map((s) => (
-            <button key={s.id} onClick={() => speak(sentenceText(s.tokens))} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white border border-stone-200 active:scale-[0.99] transition">
+            <button key={s.id} onClick={() => speak(speechText(s.tokens))} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white border border-stone-200 active:scale-[0.99] transition">
               <SentenceView tokens={s.tokens} showRomaji={showRomaji} size="sm" />
               <span className="text-xs text-stone-500">{s.en}</span>
             </button>

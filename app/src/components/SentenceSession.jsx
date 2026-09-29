@@ -4,7 +4,7 @@ import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import { PARTICLE_NOTES } from "../data/sentences.js";
-import { checkOrder, sentenceText } from "../lib/sentence.js";
+import { checkOrder, slowSpeechText, speechText } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
 
 const KINDS = {
@@ -14,7 +14,7 @@ const KINDS = {
   dictation: { label: "LISTEN & BUILD", cls: "bg-emerald-100 text-emerald-700", prompt: "Build what you hear" },
 };
 
-const say = (s, slow) => speak(sentenceText(s.tokens), slow ? 0.55 : 0.85);
+const say = (s, slow) => (slow ? speak(slowSpeechText(s.tokens), 0.6) : speak(speechText(s.tokens)));
 
 function AudioButtons({ sentence, big }) {
   return (

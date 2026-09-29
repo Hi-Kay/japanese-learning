@@ -14,15 +14,7 @@ export const shuffle = (arr) => {
   return a;
 };
 
-export const speak = (text, rate = 0.85) => {
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "ja-JP";
-    u.rate = rate;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  } catch (e) {}
-};
+export { speak } from "./speech.js";
 
 // Local-day string (YYYY-MM-DD) used for streak tracking, independent of timezone shifts mid-session.
 export const todayKey = (d = new Date()) => {
