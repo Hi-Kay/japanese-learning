@@ -4,6 +4,7 @@ import WritePanel from "./WritePanel.jsx";
 import WriteCard from "./WriteCard.jsx";
 import VariantNote from "./VariantNote.jsx";
 import SessionProgress from "./SessionProgress.jsx";
+import { ExtraGroupList, KanaGroup } from "./KanaExtra.jsx";
 import { HIRAGANA, KATAKANA } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
 import { RTK_200, STAGE_SIZE } from "../data/rtk.js";
@@ -60,6 +61,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   const [flipped, setFlipped] = useState(false);
   const [results, setResults] = useState([]);
   const [kanaMode, setKanaMode] = useState(() => storage.get("kanaMode") || "mix");
+  const [extraGroup, setExtraGroup] = useState(null); // open dakuten / yōon / … group
   const baselineKnown = useRef(new Set());
 
   const isKanji = SETS[set].kanjiLike;
@@ -69,9 +71,9 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
 
   // Hide the app header during sessions so everything fits without scrolling.
   useEffect(() => {
-    onImmersive?.(view !== "home" || !!writeChar);
+    onImmersive?.(view !== "home" || !!writeChar || !!extraGroup);
     return () => onImmersive?.(false);
-  }, [view, writeChar, onImmersive]);
+  }, [view, writeChar, extraGroup, onImmersive]);
 
   const changeKanaMode = (m) => { setKanaMode(m); storage.set("kanaMode", m); };
 
@@ -150,6 +152,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   };
 
   if (writeChar) return (<div className="flex flex-col items-center"><WritePanel char={writeChar} onClose={() => setWriteChar(null)} /></div>);
+  if (extraGroup) return <KanaGroup script={set} groupId={extraGroup} progress={progress} recordResult={recordResult} showRomaji={showRomaji} onExit={() => setExtraGroup(null)} />;
 
   // ----- HOME / MAP -----
   if (view === "home") {
@@ -211,6 +214,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           </span>
           <span>known</span>
         </div>
+        {!isKanji && <ExtraGroupList script={set} progress={progress} onOpen={setExtraGroup} />}
       </div>
     );
   }

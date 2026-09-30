@@ -20,7 +20,7 @@ The app has four tabs, named after what you're learning:
 | --- | --- |
 | **Sentences** | 12 lessons, one core sentence pattern each (69 sentences, ~70 useful words) |
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
-| **Kana** | Hiragana (46) and Katakana (46), grouped into gojūon rows of five |
+| **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
 
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
@@ -69,6 +69,11 @@ The Sentences section is built on a few well-supported principles:
   the sound) or `WRITE` (hear the sound, draw the character), so the two kinds of
   practice are clearly different on purpose.
 - **Read / Write / Mix.** For kana you can practice one direction only, or both.
+- **Marks & sound changes.** Dakuten, handakuten, yōon, sokuon and chōon each get a
+  short explanation, then auto-graded *read* and *listen* questions whose wrong answers
+  are the real mix-ups (が vs か, ぱ vs ば, きゃ vs きや, きって vs きて, ビール vs ビル).
+  Sokuon and chōon are taught with minimal pairs — word pairs where only the small っ
+  or the long vowel changes the meaning — which you can tap to hear side by side.
 - **Small chunks.** Kana are grouped by gojūon row, kanji into stages of 20, each
   with its own *Practice* button and progress count.
 - **Spaced repetition.** A Leitner box system schedules each item: correct answers
