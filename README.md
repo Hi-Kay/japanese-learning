@@ -8,13 +8,13 @@ with spaced repetition, listening practice, and handwriting practice.
 **Live app: https://hi-kay.github.io/japanese-learning/**
 
 Open it on a phone and use *Add to Home Screen* to install it like a native app. It
-works offline, needs no account, and sends no data anywhere.
+works offline and needs no account. Only the optional AI Tutor goes online (see below).
 
 ---
 
 ## What's inside
 
-The app has four tabs, named after what you're learning:
+The app has five tabs:
 
 | Tab | Content |
 | --- | --- |
@@ -22,6 +22,7 @@ The app has four tabs, named after what you're learning:
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
+| **Tutor** | An AI tutor (Claude) you can write or speak to — see [AI Tutor](#ai-tutor) |
 
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
 Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
@@ -101,6 +102,28 @@ The Sentences section is built on a few well-supported principles:
   speech synthesis.
 - Works **offline** after the first visit; stroke diagrams are cached once viewed.
 
+## AI Tutor
+
+An optional AI agent built on Claude, working on the app's own data. It needs your own
+Anthropic API key (create one at [console.anthropic.com](https://console.anthropic.com),
+set a spending limit, paste it in the Tutor tab). It uses the cheapest model, Claude
+Haiku; a practice session typically costs well under one cent.
+
+- **Speaking drill — "Say it in Japanese":** you get an English sentence from lessons
+  you've practised (the ones you struggle with first), say it in Japanese, and the tutor
+  checks it and reads the correct version aloud.
+- **Speak or type:** the 🎤 button uses the browser's speech recognition (Safari or
+  Chrome), with a 日本語 / English switch. Spoken Japanese is corrected and the right
+  sentence is read aloud so you can repeat it.
+- **Uses your data through tools:** looks words up in the built-in dictionary, saves
+  words and sentences straight into My Words, and reads your progress to focus on
+  what you get wrong. Small chips show which tools it used.
+- Readings appear above kanji, as everywhere in the app.
+
+How it works: [app/src/lib/tutor.js](app/src/lib/tutor.js) is a hand-written agent
+loop (no framework) — the model picks a tool, the app runs it, the result goes back,
+repeat. The same idea as a terminal script is in [agent/](agent/).
+
 ## Repo layout
 
 ```
@@ -112,6 +135,7 @@ The Sentences section is built on a few well-supported principles:
 │   │   └── lib/             # SRS, sentence checking, furigana, romaji→kana, storage…
 │   ├── public/              # app icons
 │   └── vite.config.js       # build + PWA manifest/service worker
+├── agent/                   # the AI tutor as a terminal script (where it started)
 ├── .github/workflows/       # GitHub Pages deploy
 └── japanese-standalone.html # the original single-file prototype (kept for reference)
 ```
@@ -154,6 +178,13 @@ backend and no account:
 | `streak` | Daily streak and review count |
 | `kanaMode` | Read / Write / Mix preference |
 | `showRomaji` | Romaji on/off |
+| `tutorApiKey` | Your Anthropic API key, if you use the Tutor |
+| `tutorChat` | The current Tutor conversation |
+| `tutorMicLang` | Microphone language (日本語 / English) |
+
+The Tutor sends your messages and the data its tools read (saved words, progress
+summary) to Anthropic's API using your key, and spoken input goes through your
+browser's speech recognition (Apple or Google). Nothing else leaves the device.
 
 Because it's stored per device, progress doesn't sync between your phone and
 computer, and clearing site data resets it.

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "./components/Icon.jsx";
 import Study from "./components/Study.jsx";
 import Vocabulary from "./components/Vocabulary.jsx";
 import Sentences from "./components/Sentences.jsx";
+import Tutor from "./components/Tutor.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
@@ -14,6 +15,7 @@ const TABS = [
   { id: "words", label: "Words", icon: "globe" },
   { id: "kana", label: "Kana", icon: "book" },
   { id: "kanji", label: "Kanji", icon: "brush" },
+  { id: "tutor", label: "Tutor", icon: "spark" },
 ];
 
 export default function App() {
@@ -70,6 +72,25 @@ export default function App() {
     showToast("Saved to My Words ✓");
   }, [cards, showToast]);
 
+  // Batch add for the AI tutor: skips words already in My Words and reports what happened.
+  // A ref keeps it correct when the tutor saves twice before React re-renders.
+  const cardsRef = useRef(cards);
+  useEffect(() => { cardsRef.current = cards; }, [cards]);
+  const addCards = useCallback((list) => {
+    const added = [];
+    const skipped = [];
+    for (const card of list) {
+      if (!card.word) continue;
+      if (cardsRef.current.some((c) => c.word === card.word) || added.some((c) => c.word === card.word)) skipped.push(card.word);
+      else added.push({ ...card, id: Date.now() + Math.random() });
+    }
+    if (added.length) {
+      cardsRef.current = [...added, ...cardsRef.current];
+      setCards(cardsRef.current);
+    }
+    return { added: added.map((c) => c.word), skipped };
+  }, []);
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800">
       <div className={`max-w-lg mx-auto px-4 ${immersive ? "pt-4 pb-6" : "pt-6 pb-24"}`}>
@@ -92,6 +113,7 @@ export default function App() {
         {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} />}
         {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
+        {tab === "tutor" && <Tutor cards={cards} progress={progress} addCards={addCards} />}
         {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} showRomaji={showRomaji} />}
       </div>
       {toast && (<div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-sm px-4 py-2 rounded-full shadow-lg z-20">{toast}</div>)}
