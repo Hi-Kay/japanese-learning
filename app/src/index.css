@@ -8,3 +8,18 @@
 body {
   margin: 0;
 }
+
+/* Furigana (readings above kanji): big and dark enough to read on a phone. */
+.furigana {
+  font-size: max(0.55em, 11px);
+  font-weight: 500;
+  color: #78716c; /* stone-500 */
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  ruby-align: center;
+}
+
+/* Keep kanji together when the reading above them is wider (don't spread 東 京 apart). */
+ruby {
+  ruby-align: center;
+}

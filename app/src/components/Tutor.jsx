@@ -30,7 +30,7 @@ function Inline({ text }) {
   for (const m of text.matchAll(RUBY_OR_BOLD)) {
     if (m.index > last) out.push(text.slice(last, m.index));
     if (m[1]) out.push(<strong key={m.index} className="font-semibold text-stone-900"><Inline text={m[1].slice(2, -2)} /></strong>);
-    else out.push(<ruby key={m.index}>{m[2]}<rt className="text-[0.55em] font-normal text-stone-400">{m[3]}</rt></ruby>);
+    else out.push(<ruby key={m.index}>{m[2]}<rt className="furigana">{m[3]}</rt></ruby>);
     last = m.index + m[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
