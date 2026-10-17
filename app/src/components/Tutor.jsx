@@ -318,7 +318,7 @@ export default function Tutor({ cards, progress, addCards }) {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(input); }
             }}
             rows={1}
-            placeholder={listening ? (micLang === "ja-JP" ? "聞いています… speak Japanese" : "Listening… speak English") : "Write Japanese or ask…"}
+            placeholder={listening ? (micLang === "ja-JP" ? "聞いています… speak Japanese" : "Listening… speak English") : "Type or speak…"}
             readOnly={listening}
             className="flex-1 resize-none p-3 rounded-2xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-300 text-stone-800 max-h-32"
           />

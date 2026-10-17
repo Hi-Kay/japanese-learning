@@ -11,9 +11,9 @@ body {
 
 /* Furigana (readings above kanji): big and dark enough to read on a phone. */
 .furigana {
-  font-size: max(0.55em, 11px);
+  font-size: max(0.6em, 12px);
   font-weight: 500;
-  color: #78716c; /* stone-500 */
+  color: #57534e; /* stone-600 */
   line-height: 1.2;
   letter-spacing: -0.03em;
   ruby-align: center;
