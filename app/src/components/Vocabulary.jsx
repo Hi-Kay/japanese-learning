@@ -3,6 +3,7 @@ import Icon from "./Icon.jsx";
 import WritePanel from "./WritePanel.jsx";
 import AddWordForm from "./AddWordForm.jsx";
 import SessionProgress from "./SessionProgress.jsx";
+import TextSizeButton from "./TextSizeButton.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 import { hasKanji, phraseToKana } from "../lib/romaji.js";
@@ -186,7 +187,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
         <div className="w-full flex items-center justify-between max-w-sm">
           <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           <span className="text-xs text-stone-400">{learnIdx + 1} of {source.length}</span>
-          <span className="w-12" />
+          <TextSizeButton compact />
         </div>
         <div className="text-xs text-stone-400">{learnFlipped ? "" : "Recall the meaning, then flip"}</div>
         <button onClick={() => setLearnFlipped((f) => !f)} className="w-full max-w-sm min-h-40 rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition select-none px-5 py-6 text-center">

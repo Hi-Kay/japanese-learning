@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
 import SessionProgress from "./SessionProgress.jsx";
+import TextSizeButton from "./TextSizeButton.jsx";
 import { KANA_EXTRA } from "../data/kanaExtra.js";
 import { contrastOf, makeExercise } from "../lib/kanaQuiz.js";
 import { MASTER_BOX, shuffle, speak } from "../lib/srs.js";
@@ -206,7 +207,10 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
   };
   return (
     <div className="flex flex-col gap-5 pb-24">
-      <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1 self-start"><Icon name="back" size={16} /> Back</button>
+      <div className="flex items-center justify-between">
+        <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
+        <TextSizeButton compact />
+      </div>
       <div className="flex flex-col items-center gap-2 text-center">
         <span className="w-16 h-16 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-3xl text-stone-700">{group.symbol}</span>
         <h2 className="text-2xl font-semibold text-stone-800">{group.title}</h2>

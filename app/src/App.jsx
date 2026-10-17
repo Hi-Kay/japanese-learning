@@ -9,7 +9,7 @@ import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
 import { BOX_INTERVALS } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
-import { TEXT_SIZES, applyTextSize, getTextSize } from "./lib/textSize.js";
+import TextSizeButton from "./components/TextSizeButton.jsx";
 
 const TABS = [
   { id: "sentences", label: "Sentences", icon: "chat" },
@@ -24,12 +24,6 @@ export default function App() {
   const [showRomaji, setShowRomaji] = useState(() => storage.get("showRomaji") !== "0");
   const toggleRomaji = () => setShowRomaji((v) => { storage.set("showRomaji", v ? "0" : "1"); return !v; });
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [textSize, setTextSize] = useState(getTextSize);
-  const cycleTextSize = () => {
-    const i = TEXT_SIZES.findIndex((s) => s.id === textSize);
-    setTextSize(applyTextSize(TEXT_SIZES[(i + 1) % TEXT_SIZES.length].id));
-  };
-  const textSizeLabel = TEXT_SIZES.find((s) => s.id === textSize)?.label ?? "Normal";
   const [cards, setCards] = useState([]);
   const [progress, setProgress] = useState({});
   const [streak, setStreak] = useState(DEFAULT_STREAK);
@@ -113,9 +107,7 @@ export default function App() {
               <button onClick={() => setVoiceOpen((o) => !o)} className={`px-3 py-1 rounded-full text-xs font-medium border transition flex items-center gap-1 ${voiceOpen ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-white border-stone-200 text-stone-500"}`} title="Choose the Japanese voice">
                 <Icon name="volume" size={13} /> Voice
               </button>
-              <button onClick={cycleTextSize} className={`px-3 py-1 rounded-full text-xs font-medium border transition ${textSize === "normal" ? "bg-white border-stone-200 text-stone-500" : "bg-rose-50 border-rose-200 text-rose-600"}`} title={`Text size: ${textSizeLabel} — tap to change`}>
-                <span className="font-semibold">A</span><span className="text-[15px] font-semibold">A</span>{textSize !== "normal" && <span className="ml-1">{textSizeLabel}</span>}
-              </button>
+              <TextSizeButton />
             </div>
             {voiceOpen && <VoicePicker onClose={() => setVoiceOpen(false)} />}
           </header>

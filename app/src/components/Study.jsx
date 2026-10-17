@@ -4,6 +4,7 @@ import WritePanel from "./WritePanel.jsx";
 import WriteCard from "./WriteCard.jsx";
 import VariantNote from "./VariantNote.jsx";
 import SessionProgress from "./SessionProgress.jsx";
+import TextSizeButton from "./TextSizeButton.jsx";
 import { ExtraGroupList, KanaGroup } from "./KanaExtra.jsx";
 import { HIRAGANA, KATAKANA } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
@@ -230,7 +231,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
         <div className="w-full flex items-center justify-between max-w-sm">
           <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           <span className="text-xs text-stone-400">{learnIdx + 1} of {source.length}</span>
-          <span className="w-12" />
+          <TextSizeButton compact />
         </div>
         <button onClick={() => setLearnFlipped((f) => !f)} className="w-full max-w-sm aspect-[4/3] rounded-3xl bg-white border border-stone-200 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.99] transition select-none px-4 text-center">
           {!learnFlipped ? (<div className="text-8xl font-medium text-stone-800">{ch}</div>) : (

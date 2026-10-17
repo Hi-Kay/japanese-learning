@@ -3,6 +3,7 @@ import Icon from "./Icon.jsx";
 import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
 import SentenceSession from "./SentenceSession.jsx";
+import TextSizeButton from "./TextSizeButton.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
 import { speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
@@ -140,7 +141,10 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
     const roles = [...new Set(l.sentences.flatMap((s) => s.tokens.map((t) => t.role)))].filter((r) => r !== "Q");
     return (
       <div className="flex flex-col gap-5 pb-24">
-        <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1 self-start"><Icon name="back" size={16} /> Back</button>
+        <div className="flex items-center justify-between">
+          <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
+          <TextSizeButton compact />
+        </div>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="text-xs text-stone-400">Lesson {l.index + 1}</span>
           <h2 className="text-2xl font-semibold text-stone-800 -mt-2">{l.title}</h2>
