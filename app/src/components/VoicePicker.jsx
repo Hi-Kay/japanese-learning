@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
-import { currentVoice, japaneseVoices, setVoice, speak } from "../lib/speech.js";
+import { currentVoice, japaneseVoices, setVoice, soundTest, speak } from "../lib/speech.js";
 
 const SAMPLE = "こんにちは。私は毎日日本語を勉強します。";
 
@@ -8,6 +8,13 @@ const SAMPLE = "こんにちは。私は毎日日本語を勉強します。";
 export default function VoicePicker({ onClose }) {
   const [voices, setVoices] = useState(japaneseVoices);
   const [selected, setSelected] = useState(() => currentVoice()?.voiceURI);
+  const [testLog, setTestLog] = useState(null);
+  // One test per tap: iPhones only allow speech that starts directly from a tap.
+  const runTest = async (useVoice) => {
+    const title = useVoice ? "Test with your chosen voice" : "Test with the default voice";
+    setTestLog([title, "Testing…"]);
+    setTestLog([title, ...(await soundTest({ useVoice }))]);
+  };
 
   useEffect(() => {
     // Some browsers load their voice list asynchronously.
@@ -40,6 +47,13 @@ export default function VoicePicker({ onClose }) {
             </button>
           ))}
         </div>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        <button onClick={() => runTest(true)} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-600 flex items-center gap-1"><Icon name="volume" size={13} /> Sound test</button>
+        <button onClick={() => runTest(false)} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-600">Test default voice</button>
+      </div>
+      {testLog && (
+        <pre className="text-[11px] leading-relaxed text-stone-600 bg-stone-50 border border-stone-100 rounded-xl p-2 whitespace-pre-wrap">{testLog.join("\n")}</pre>
       )}
       <div className="text-[11px] text-stone-400">Tap a voice to hear it. On iPhone, Safari only offers Apple's built-in voices, not the downloadable “Enhanced” ones.</div>
     </div>
