@@ -4,6 +4,7 @@ import { costOf, runTutorTurn } from "../lib/tutor.js";
 import { speak } from "../lib/srs.js";
 import { canListen, listen } from "../lib/listen.js";
 import { storage } from "../lib/storage.js";
+import { MAX_NOTES, getMemory, setMemory, speakingStats } from "../lib/tutorStore.js";
 
 const KEY_STORE = "tutorApiKey";
 const CHAT_STORE = "tutorChat";
@@ -148,6 +149,39 @@ function KeySetup({ onSave, onCancel }) {
   );
 }
 
+// ---------- Memory: what the tutor remembers about you ----------
+// The notes are shown to the tutor at the start of every chat. Here you can read and delete them.
+
+function MemoryPanel({ notes, onChange, onClose }) {
+  return (
+    <div className="flex flex-col gap-3 p-4 rounded-2xl bg-white border border-stone-200">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-stone-800">What the tutor remembers</span>
+          <span className="text-[11px] text-stone-400">Read at the start of every chat. Stored only on this device.</span>
+        </div>
+        <button onClick={onClose} className="p-1 text-stone-400 shrink-0" title="Close"><Icon name="x" size={16} /></button>
+      </div>
+      {notes.length === 0 ? (
+        <p className="text-sm text-stone-500">Nothing yet. When the tutor notices something lasting (a mistake you keep making, a goal, what you like to practise), it writes a short note here.</p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {notes.map((n, i) => (
+            <li key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl bg-stone-50 border border-stone-100 text-sm text-stone-700">
+              <span className="flex-1">{n}</span>
+              <button onClick={() => onChange(notes.filter((_, j) => j !== i))} className="p-0.5 text-stone-400 shrink-0" title="Forget this"><Icon name="trash" size={14} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center justify-between text-[11px] text-stone-400">
+        <span>{notes.length} of {MAX_NOTES} notes</span>
+        {notes.length > 0 && <button onClick={() => onChange([])} className="underline">Forget everything</button>}
+      </div>
+    </div>
+  );
+}
+
 // ---------- One message ----------
 
 function ToolChips({ tools }) {
@@ -202,6 +236,10 @@ export default function Tutor({ cards, progress, addCards }) {
   const [liveTools, setLiveTools] = useState([]);
   const [listening, setListening] = useState(false);
   const [micLang, setMicLang] = useState(() => storage.get(MIC_LANG_STORE) || "ja-JP");
+  const [memory, setMemoryState] = useState(getMemory);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const [speakStats, setSpeakStats] = useState(speakingStats);
+  const editMemory = (notes) => setMemoryState(setMemory(notes));
   const chooseMicLang = (id) => { storage.set(MIC_LANG_STORE, id); setMicLang(id); };
   const stopListening = useRef(null);
   useEffect(() => () => stopListening.current?.(), []); // stop the mic when leaving the tab
@@ -268,6 +306,8 @@ export default function Tutor({ cards, progress, addCards }) {
       setChat({ ...before, usage, display: [...before.display, shown, { role: "error", text: err.message }] });
       setInput(text);
     } finally {
+      setMemoryState(getMemory());
+      setSpeakStats(speakingStats());
       setBusy(false);
       setLiveTools([]);
     }
@@ -318,12 +358,26 @@ export default function Tutor({ cards, progress, addCards }) {
         </div>
       </div>
 
+      {memoryOpen ? (
+        <MemoryPanel notes={memory} onChange={editMemory} onClose={() => setMemoryOpen(false)} />
+      ) : (
+        <button onClick={() => setMemoryOpen(true)} className="self-start flex items-center gap-1.5 text-xs text-stone-500 px-3 py-1.5 rounded-full bg-white border border-stone-200">
+          <Icon name="notes" size={13} />
+          {memory.length ? `Tutor remembers ${memory.length} ${memory.length === 1 ? "thing" : "things"} about you` : "Tutor memory: empty"}
+        </button>
+      )}
+
       {chat.display.length === 0 && (
-        <div className="flex flex-col gap-2 pt-2">
+        <div className="flex flex-col gap-2 pt-1">
           <button onClick={startDrill} className="w-full rounded-3xl bg-white border-2 border-rose-200 p-5 flex flex-col items-center gap-2 text-center shadow-sm active:scale-[0.99] transition">
             <span className="text-[11px] font-semibold tracking-widest text-rose-400">SPEAKING DRILL</span>
             <span className="text-xl font-semibold text-stone-800 -mt-1">Say it in Japanese</span>
             <span className="text-sm text-stone-500">You get an English sentence from your lessons. Tap 🎤 and say it in Japanese — the tutor checks it and says the right version.</span>
+            {speakStats.spoken > 0 && (
+              <span className="text-xs text-stone-500">
+                {speakStats.spoken} {speakStats.spoken === 1 ? "sentence" : "sentences"} spoken · <span className={speakStats.toReview ? "text-rose-500 font-medium" : ""}>{speakStats.toReview} to review</span> · {speakStats.mastered} mastered
+              </span>
+            )}
             <span className="w-full py-3 mt-1 rounded-2xl bg-rose-500 text-white font-medium flex items-center justify-center gap-2"><Icon name="mic" size={18} /> Start drill</span>
           </button>
           <div className="text-xs font-medium text-stone-500 px-1 mt-2">Or try one of these</div>
@@ -346,7 +400,7 @@ export default function Tutor({ cards, progress, addCards }) {
         )}
       </div>
 
-      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] bg-stone-50 pt-1 pb-1">
+      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] bg-stone-50 pt-1 pb-1 shadow-[0_2rem_0_0_#fafaf9]">
         {canListen() && (
           <div className="flex items-center justify-end gap-1.5 mb-1.5 text-[11px] text-stone-400">
             <Icon name="mic" size={12} /> Speak in

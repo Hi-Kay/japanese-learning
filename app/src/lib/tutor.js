@@ -5,11 +5,13 @@
 //   3. repeat until the model gives a final answer (or MAX_STEPS is reached)
 //
 // The tools work on the app's own data: the built-in dictionary, My Words,
-// and the spaced-repetition progress of every lesson.
+// the spaced-repetition progress of every lesson, speaking-drill results and
+// the tutor's own notes about the learner (its memory between chats).
 
 import { lookupWord } from "../data/dictionary.js";
 import { LESSONS } from "../data/sentences.js";
 import { MASTER_BOX } from "./srs.js";
+import { MAX_NOTES, getMemory, getSpeaking, recordSpeaking, setMemory } from "./tutorStore.js";
 
 export const MODEL = "claude-haiku-5-5";
 const MAX_STEPS = 10; // safety cap so a confused agent can't loop forever
@@ -64,11 +66,41 @@ export const TOOLS = [
     name: "get_drill_sentences",
     description:
       "Get sentences for a 'Say it in Japanese' speaking drill, taken from the app's lessons the learner has already practised " +
-      "(sentences they struggle with or that are due come first). Each has the English prompt and the expected Japanese answer. " +
-      "The Japanese is the answer key: never show it before the learner has answered.",
+      "(sentences they got wrong when speaking, or that are due, come first). Each has an id, the English prompt, the expected " +
+      "Japanese answer, and how earlier spoken attempts went. The Japanese is the answer key: never show it before the learner has answered.",
     input_schema: {
       type: "object",
       properties: { count: { type: "integer", description: "How many sentences (default 8)" } },
+    },
+  },
+  {
+    name: "record_drill_result",
+    description:
+      "Save the result of one drill answer, right after you've checked it. Wrong answers come back sooner in later drills; " +
+      "right ones are spaced out further. Call it once per answered drill sentence.",
+    input_schema: {
+      type: "object",
+      properties: {
+        sentence_id: { type: "string", description: "The id from get_drill_sentences" },
+        correct: { type: "boolean", description: "true if the answer was correct (other natural versions count as correct)" },
+        said: { type: "string", description: "What the learner actually said or wrote" },
+      },
+      required: ["sentence_id", "correct"],
+    },
+  },
+  {
+    name: "save_learner_notes",
+    description:
+      `Replace your notes about the learner — your memory between chats, shown to you at the start of every chat. ` +
+      `Send the COMPLETE updated list (keep, edit, merge or drop earlier notes), at most ${MAX_NOTES} short notes. ` +
+      "Note lasting things only: mistakes they make repeatedly, their goals and interests, their level, how they like to be taught. " +
+      "Not one-off slips. The learner can see and delete every note.",
+    input_schema: {
+      type: "object",
+      properties: {
+        notes: { type: "array", items: { type: "string" }, description: "Short notes, one fact each, e.g. \"Mixes up これ (this thing) and ここ (here)\"" },
+      },
+      required: ["notes"],
     },
   },
   {
@@ -106,6 +138,15 @@ async function lookup(word) {
   }
 }
 
+function speakingSummary() {
+  const sp = getSpeaking();
+  const wrong = Object.entries(sp).filter(([, v]) => v.last === "wrong").slice(0, 10).map(([id, v]) => {
+    const s = ALL_SENTENCES.find((x) => x.id === id);
+    return s && `${s.en} → said "${v.said || "?"}", correct: ${plainSentence(s)}`;
+  }).filter(Boolean);
+  return { sentences_spoken: Object.keys(sp).length, mastered: Object.values(sp).filter((v) => v.box >= 4).length, wrong_last_time: wrong };
+}
+
 function progressSummary(progress, cards) {
   const now = Date.now();
   const lessons = LESSONS.map((l) => {
@@ -140,33 +181,57 @@ function progressSummary(progress, cards) {
     known_kana_count: knownChars.length - kanji.length,
     known_kanji: kanji.join(""),
     my_words_count: cards.length,
+    speaking_drill: speakingSummary(),
   });
 }
 
 const plainSentence = (s) => stripFurigana(s.tokens.map((t) => t.jp + (t.comma ? "、" : "")).join("")) + "。";
 
-// Sentences from lessons the learner has started (or lesson 1 if none): struggling and due ones first.
-function drillSentences(progress, count = 8) {
+const ALL_SENTENCES = LESSONS.flatMap((l) => l.sentences);
+
+// Sentences from lessons the learner has started or spoken from (or lesson 1 if none).
+// Order: spoken wrong last time → speaking review due → struggling in lessons → never spoken → the rest.
+function drillSentences(progress, speaking, count = 8) {
   const now = Date.now();
-  const started = LESSONS.filter((l) => l.sentences.some((s) => progress[`s:${s.id}`]));
+  const started = LESSONS.filter((l) => l.sentences.some((s) => progress[`s:${s.id}`] || speaking[s.id]));
   const pool = (started.length ? started : LESSONS.slice(0, 1)).flatMap((l) => l.sentences);
   const rank = (s) => {
+    const sp = speaking[s.id];
     const st = progress[`s:${s.id}`];
-    if (st && st.box <= 1) return 0; // struggling
-    if (st && st.due <= now) return 1; // due
-    if (!st) return 2; // not practised yet
-    return 3; // fine
+    if (sp?.last === "wrong") return 0;
+    if (sp && sp.due <= now) return 1;
+    if (!sp && st && st.box <= 1) return 2;
+    if (!sp) return 3;
+    return 4;
   };
   const shuffled = pool.map((s) => ({ s, r: rank(s) + Math.random() * 0.9 })).sort((a, b) => a.r - b.r);
-  return shuffled.slice(0, Math.min(Math.max(count, 1), 15)).map(({ s }) => ({
-    english: s.en,
-    japanese: plainSentence(s),
-    lesson: `${s.lesson + 1}. ${LESSONS[s.lesson].title}`,
-  }));
+  return shuffled.slice(0, Math.min(Math.max(count, 1), 15)).map(({ s }) => {
+    const sp = speaking[s.id];
+    return {
+      id: s.id,
+      english: s.en,
+      japanese: plainSentence(s),
+      lesson: `${s.lesson + 1}. ${LESSONS[s.lesson].title}`,
+      spoken_before: sp ? (sp.last === "wrong" ? `wrong last time (said: ${sp.said || "?"})` : `right last time, box ${sp.box} of 5`) : "never",
+    };
+  });
+}
+
+// Matches BOX_INTERVALS in srs.js.
+const INTERVAL_NAMES = ["now", "1 minute", "10 minutes", "1 day", "3 days", "10 days"];
+function recordDrill({ sentence_id, correct, said = "" }) {
+  if (!ALL_SENTENCES.some((s) => s.id === sentence_id)) throw new Error(`Unknown sentence_id "${sentence_id}". Use an id from get_drill_sentences.`);
+  const r = recordSpeaking(sentence_id, !!correct, said);
+  return `Saved (${correct ? "right" : "wrong"}). Box ${r.box} of 5; it comes back in a drill in ${INTERVAL_NAMES[r.box]}.`;
 }
 
 async function runTool(name, input, app) {
-  if (name === "get_drill_sentences") return JSON.stringify(drillSentences(app.getProgress(), input.count ?? 8));
+  if (name === "get_drill_sentences") return JSON.stringify(drillSentences(app.getProgress(), getSpeaking(), input.count ?? 8));
+  if (name === "record_drill_result") return recordDrill(input);
+  if (name === "save_learner_notes") {
+    const saved = setMemory(input.notes ?? []);
+    return `Saved ${saved.length} note(s). You'll see them at the start of every chat.`;
+  }
   if (name === "lookup_word") return lookup(input.word);
   if (name === "save_to_my_words") {
     const items = (input.items ?? []).map((it) => ({
@@ -194,12 +259,14 @@ export function describeTool(name, input) {
   if (name === "get_my_words") return "Read your saved words";
   if (name === "get_my_progress") return "Checked your progress";
   if (name === "get_drill_sentences") return "Picked drill sentences";
+  if (name === "record_drill_result") return input.correct ? "Saved result ✓" : "Saved result ✗";
+  if (name === "save_learner_notes") return "Updated memory";
   return name;
 }
 
 // ---------- 3. THE MODEL CALL ----------
 
-const SYSTEM = `You are a friendly, encouraging Japanese tutor inside a beginner's learning app.
+const BASE_SYSTEM = `You are a friendly, encouraging Japanese tutor inside a beginner's learning app.
 
 How to write:
 - Write every kanji word with its reading in brackets right after it, like 図書館[としょかん] or 飲[の]みます. The app shows the reading above the kanji. Never put brackets after kana.
@@ -219,12 +286,24 @@ How to teach:
   - Ask the learner to say the corrected sentence again, or ask a simple follow-up question to keep the conversation going.
 - "Say it in Japanese" speaking drill (when the learner asks for a drill):
   - Call get_drill_sentences once, then give ONE English sentence at a time, e.g. "Say in Japanese: **I'll go to the station tomorrow.**" Never show the Japanese answer before they reply, and put no Japanese at all in the prompt.
-  - When they answer, begin with the correct Japanese sentence on its own line (it is read aloud), then one short line: ✓ if right, or what to fix and why. Accept any correct version: other natural word orders, leaving out 私は, です/だ variations, punctuation differences.
+  - When they answer, call record_drill_result for that sentence, then begin your reply with the correct Japanese sentence on its own line (it is read aloud), then one short line: ✓ if right, or what to fix and why. Accept any correct version: other natural word orders, leaving out 私は, です/だ variations, punctuation differences.
   - Then give the next English sentence. After the last one, give a short score and the one thing to work on. If they say stop, stop.
+- Your memory: below are your notes about this learner from earlier chats. Use them to personalise your teaching.
+  - Keep them up to date with save_learner_notes when you notice something lasting (a mistake they keep making, a goal, an interest, their level, how they like to learn), e.g. at the end of a drill. Not for one-off slips.
+  - When you add or change a note, say so in a few words (e.g. "I'll remember that you mix up これ and ここ."). If the learner asks you to forget something, remove it.
 - When quizzing, ask ONE question at a time and never reveal the answer in the question. Wait for the reply, then say whether it was right.
 
 The app's sentence lessons, in order: ${LESSONS.map((l) => `${l.index + 1}. ${l.title}`).join(", ")}.
 Prefer grammar and words from lessons the learner has already practised.`;
+
+// The notes are read fresh for every request, so a note saved mid-chat is used right away.
+function systemPrompt() {
+  const notes = getMemory();
+  return `${BASE_SYSTEM}
+
+Your notes about this learner (from earlier chats):
+${notes.length ? notes.map((n) => `- ${n}`).join("\n") : "(none yet)"}`;
+}
 
 async function callModel(apiKey, messages) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -237,7 +316,7 @@ async function callModel(apiKey, messages) {
       // key is the learner's own and stays in their browser.
       "anthropic-dangerous-direct-browser-access": "true",
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: SYSTEM, tools: TOOLS, messages }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: systemPrompt(), tools: TOOLS, messages }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

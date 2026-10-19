@@ -118,6 +118,11 @@ Haiku; a practice session typically costs well under one cent.
 - **Uses your data through tools:** looks words up in the built-in dictionary, saves
   words and sentences straight into My Words, and reads your progress to focus on
   what you get wrong. Small chips show which tools it used.
+- **Drill results are saved** as separate *speaking* progress (same five boxes as the
+  rest of the app): sentences you say wrong come back first in the next drill.
+- **Memory between chats:** the tutor keeps up to 15 short notes about you ("mixes up
+  これ and ここ") that are added to its instructions at the start of every chat. Tap
+  *Tutor remembers…* to read or delete them.
 - Readings appear above kanji, as everywhere in the app.
 
 How it works: [app/src/lib/tutor.js](app/src/lib/tutor.js) is a hand-written agent
@@ -181,9 +186,12 @@ backend and no account:
 | `tutorApiKey` | Your Anthropic API key, if you use the Tutor |
 | `tutorChat` | The current Tutor conversation |
 | `tutorMicLang` | Microphone language (日本語 / English) |
+| `speaking` | Speaking-drill results: box, due date and last answer per sentence |
+| `tutorMemory` | The tutor's notes about you (its memory between chats) |
+| `textSize` | Text size (Normal / Large / Extra large) |
 
-The Tutor sends your messages and the data its tools read (saved words, progress
-summary) to Anthropic's API using your key, and spoken input goes through your
+The Tutor sends your messages, its notes about you and the data its tools read
+(saved words, progress summary, drill results) to Anthropic's API using your key, and spoken input goes through your
 browser's speech recognition (Apple or Google). Nothing else leaves the device.
 
 Because it's stored per device, progress doesn't sync between your phone and
