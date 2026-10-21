@@ -7,17 +7,18 @@
 // The tools work on the app's own data: the built-in dictionary, My Words,
 // the spaced-repetition progress of every lesson, speaking-drill results and
 // the tutor's own notes about the learner (its memory between chats).
+//
+// Nothing below is specific to one AI provider. The loop runs on Claude or on
+// Mistral, whichever key the learner has; providers.js holds everything that
+// differs between the two, including the shape of the conversation on the wire.
 
 import { lookupWord } from "../data/dictionary.js";
 import { LESSONS } from "../data/sentences.js";
+import { providerOf } from "./providers.js";
 import { MASTER_BOX } from "./srs.js";
 import { MAX_NOTES, getMemory, getSpeaking, recordSpeaking, setMemory } from "./tutorStore.js";
 
-export const MODEL = "claude-haiku-5-5";
 const MAX_STEPS = 10; // safety cap so a confused agent can't loop forever
-
-// Haiku 5.5, prompts up to 100K tokens: $0.10 / $0.50 per million input / output tokens.
-export const costOf = ({ input, output }) => (input * 0.1 + output * 0.5) / 1e6;
 
 // ---------- 1. TOOLS: what the agent may do ----------
 
@@ -305,57 +306,47 @@ Your notes about this learner (from earlier chats):
 ${notes.length ? notes.map((n) => `- ${n}`).join("\n") : "(none yet)"}`;
 }
 
-async function callModel(apiKey, messages) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-      // Required to call the API straight from a web page. Safe here because the
-      // key is the learner's own and stays in their browser.
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: 1024, system: systemPrompt(), tools: TOOLS, messages }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (res.status === 401) throw new Error("The API key was rejected. Check it in the Tutor settings.");
-    throw new Error(`API error ${res.status}: ${data.error?.message ?? "unknown error"}`);
-  }
-  return data;
-}
-
 // ---------- 4. THE AGENT LOOP ----------
 // Takes the conversation so far (ending with the new user message) and returns
 // the updated conversation plus the final answer. Calls onEvent for each tool
 // use and each API call, so the UI can show progress live.
+//
+// The conversation is in the neutral format described in providers.js, so the
+// same loop serves both providers and a saved chat can switch between them.
 
-export async function runTutorTurn({ apiKey, messages, app, onEvent }) {
+export async function runTutorTurn({ provider, apiKey, messages, app, onEvent }) {
+  const ai = providerOf(provider);
   const convo = [...messages];
   for (let step = 1; step <= MAX_STEPS; step++) {
-    const response = await callModel(apiKey, convo);
-    onEvent?.({ type: "usage", input: response.usage.input_tokens, output: response.usage.output_tokens });
-    convo.push({ role: "assistant", content: response.content });
+    const reply = await ai.send({ key: apiKey, system: systemPrompt(), tools: TOOLS, convo });
+    onEvent?.({ type: "usage", provider: ai.id, input: reply.usage.input, output: reply.usage.output });
+    convo.push({ role: "assistant", text: reply.text, calls: reply.calls });
 
-    const text = response.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
-    if (response.stop_reason !== "tool_use") return { messages: convo, text };
+    // No tool calls means this is the final answer — true of either provider,
+    // so the loop never has to look at stop_reason or finish_reason itself.
+    if (!reply.calls.length) return { messages: convo, text: reply.text };
 
     const results = [];
-    for (const block of response.content) {
-      if (block.type !== "tool_use") continue;
+    for (const call of reply.calls) {
       let output;
       let failed = false;
-      try {
-        output = await runTool(block.name, block.input, app);
-      } catch (err) {
-        output = `Tool failed: ${err.message}`; // the model sees the error and can adapt
+      if (call.badArguments) {
+        // The model asked for a tool but its arguments were not valid JSON.
+        output = `Tool failed: the arguments were not valid JSON: ${call.badArguments}`;
         failed = true;
+      } else {
+        try {
+          output = await runTool(call.name, call.input, app);
+        } catch (err) {
+          output = `Tool failed: ${err.message}`; // the model sees the error and can adapt
+          failed = true;
+        }
       }
-      onEvent?.({ type: "tool", name: block.name, input: block.input, label: describeTool(block.name, block.input), failed });
-      results.push({ type: "tool_result", tool_use_id: block.id, content: output });
+      const label = call.input ? describeTool(call.name, call.input) : call.name;
+      onEvent?.({ type: "tool", name: call.name, input: call.input, label, failed });
+      results.push({ id: call.id, name: call.name, output });
     }
-    convo.push({ role: "user", content: results });
+    convo.push({ role: "tool", results });
   }
   return { messages: convo, text: "(I stopped because this took too many steps. Try asking in a simpler way.)" };
 }

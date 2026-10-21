@@ -1,16 +1,37 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
-import { costOf, runTutorTurn } from "../lib/tutor.js";
+import { runTutorTurn } from "../lib/tutor.js";
+import { DEFAULT_PROVIDER, PROVIDER_LIST, costOf, providerOf, totalTokens } from "../lib/providers.js";
 import { speak } from "../lib/srs.js";
 import { canListen, listen } from "../lib/listen.js";
 import { storage } from "../lib/storage.js";
 import { MAX_NOTES, getMemory, setMemory, speakingStats } from "../lib/tutorStore.js";
 
-const KEY_STORE = "tutorApiKey";
-const CHAT_STORE = "tutorChat";
+const KEYS_STORE = "tutorApiKeys";      // { anthropic, mistral } — one key per provider
+const LEGACY_KEY_STORE = "tutorApiKey"; // before the app supported Mistral: one Anthropic key
+const PROVIDER_STORE = "tutorProvider";
+const CHAT_STORE = "tutorChat2";        // v2: the stored conversation is provider-neutral now
+const LEGACY_CHAT_STORE = "tutorChat";
 const MIC_LANG_STORE = "tutorMicLang";
 const MIC_LANGS = [{ id: "ja-JP", label: "日本語" }, { id: "en-US", label: "English" }];
-const EMPTY_CHAT = { display: [], api: [], usage: { input: 0, output: 0 } };
+const EMPTY_CHAT = { display: [], api: [], usage: {} };
+
+// Keys used to live in a single string, from when Claude was the only option.
+// Move that one into the per-provider store the first time, then forget it.
+function loadKeys() {
+  const saved = storage.getJSON(KEYS_STORE, null);
+  if (saved) return saved;
+  const legacy = storage.get(LEGACY_KEY_STORE) || "";
+  const keys = legacy ? { anthropic: legacy } : {};
+  if (legacy) {
+    storage.setJSON(KEYS_STORE, keys);
+    storage.set(LEGACY_KEY_STORE, "");
+  }
+  // The old chat history used Anthropic's own message shape, which this version
+  // no longer understands, so it is dropped rather than migrated.
+  storage.set(LEGACY_CHAT_STORE, "");
+  return keys;
+}
 
 const DRILL_PROMPT = "Start a speaking drill: give me English sentences from my lessons to say in Japanese.";
 const STARTERS = [
@@ -116,33 +137,65 @@ const firstJapaneseLine = (text) => {
 
 // ---------- API key setup ----------
 
-function KeySetup({ onSave, onCancel }) {
+function KeySetup({ provider, keys, onSave, onCancel }) {
+  const [pid, setPid] = useState(provider);
   const [key, setKey] = useState("");
-  const valid = key.trim().startsWith("sk-ant-");
+  const ai = providerOf(pid);
+  const saved = keys[pid] || "";
+  // Typing is optional when a key for this provider is already stored: then the
+  // button just switches to it.
+  const typed = key.trim();
+  const valid = typed ? ai.looksLikeKey(typed) : !!saved;
+
+  const changeKey = (v) => {
+    setKey(v);
+    // A Claude key is recognisable, so pasting one under Mistral just moves the choice.
+    if (v.trim().startsWith("sk-ant-") && pid !== "anthropic") setPid("anthropic");
+  };
+
   return (
     <div className="flex flex-col gap-4 p-5 rounded-3xl bg-white border border-stone-200">
       <div className="flex flex-col gap-1">
         <div className="text-lg font-semibold text-stone-800">Set up your AI tutor</div>
         <p className="text-sm text-stone-500">
-          The tutor uses Claude through your own Anthropic API key. You pay per use; a practice session typically costs well under one cent.
+          The tutor runs on your own API key — whichever of these you have. You pay per use; a practice session
+          typically costs well under one cent either way.
         </p>
       </div>
+
+      <div className="flex rounded-2xl border border-stone-200 bg-stone-50 p-1">
+        {PROVIDER_LIST.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => { setPid(p.id); setKey(""); }}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${pid === p.id ? "bg-rose-500 text-white shadow-sm" : "text-stone-500"}`}
+          >
+            {p.label}
+            {keys[p.id] && <span className={pid === p.id ? "opacity-70" : "text-stone-400"}> ✓</span>}
+          </button>
+        ))}
+      </div>
+
       <ol className="text-sm text-stone-600 flex flex-col gap-1 list-decimal pl-5">
-        <li>Create a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" className="text-rose-500 underline">console.anthropic.com</a></li>
-        <li>Set a monthly spending limit there</li>
+        <li>Create a key at <a href={ai.consoleUrl} target="_blank" rel="noreferrer" className="text-rose-500 underline">{ai.consoleLabel}</a></li>
+        <li>Set a spending limit there</li>
         <li>Paste the key below</li>
       </ol>
       <input
         type="password"
         value={key}
-        onChange={(e) => setKey(e.target.value)}
-        placeholder="sk-ant-…"
+        onChange={(e) => changeKey(e.target.value)}
+        placeholder={saved ? "Saved — paste a new key to replace it" : ai.placeholder}
         autoComplete="off"
         className="w-full p-3 rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:ring-2 focus:ring-rose-300 text-stone-800"
       />
-      <p className="text-[11px] text-stone-400 -mt-2">Stored only in this browser on this device, and sent only to Anthropic.</p>
+      <p className="text-[11px] text-stone-400 -mt-2">
+        Stored only in this browser on this device, and sent only to {ai.vendor}. Uses {ai.modelLabel}.
+      </p>
       <div className="flex gap-2">
-        <button onClick={() => onSave(key.trim())} disabled={!valid} className="flex-1 py-3 rounded-2xl bg-rose-500 text-white font-medium disabled:opacity-40">Save key</button>
+        <button onClick={() => onSave(pid, typed || saved)} disabled={!valid} className="flex-1 py-3 rounded-2xl bg-rose-500 text-white font-medium disabled:opacity-40">
+          {typed || !saved ? "Save key" : `Use ${ai.label}`}
+        </button>
         {onCancel && <button onClick={onCancel} className="px-4 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Cancel</button>}
       </div>
     </div>
@@ -228,7 +281,8 @@ function Message({ msg }) {
 // ---------- The Tutor tab ----------
 
 export default function Tutor({ cards, progress, addCards }) {
-  const [apiKey, setApiKey] = useState(() => storage.get(KEY_STORE) || "");
+  const [keys, setKeys] = useState(loadKeys);
+  const [provider, setProvider] = useState(() => storage.get(PROVIDER_STORE) || DEFAULT_PROVIDER);
   const [editingKey, setEditingKey] = useState(false);
   const [chat, setChat] = useState(() => storage.getJSON(CHAT_STORE, EMPTY_CHAT));
   const [input, setInput] = useState("");
@@ -253,14 +307,29 @@ export default function Tutor({ cards, progress, addCards }) {
   // Scroll to the very bottom of the page, so the newest message sits just above the input box.
   useEffect(() => { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }); }, [chat.display.length, liveTools.length, busy]);
 
-  const saveKey = (k) => { storage.set(KEY_STORE, k); setApiKey(k); setEditingKey(false); };
-  const removeKey = () => { storage.set(KEY_STORE, ""); setApiKey(""); setEditingKey(false); };
+  const ai = providerOf(provider);
+  const apiKey = keys[provider] || "";
+
+  const saveKey = (pid, k) => {
+    const next = { ...keys, [pid]: k };
+    storage.setJSON(KEYS_STORE, next);
+    storage.set(PROVIDER_STORE, pid);
+    setKeys(next);
+    setProvider(pid);
+    setEditingKey(false);
+  };
+  const removeKey = () => {
+    const next = { ...keys, [provider]: "" };
+    storage.setJSON(KEYS_STORE, next);
+    setKeys(next);
+    setEditingKey(false);
+  };
 
   if (!apiKey || editingKey) {
     return (
       <div className="flex flex-col gap-3">
-        <KeySetup onSave={saveKey} onCancel={apiKey ? () => setEditingKey(false) : null} />
-        {apiKey && <button onClick={removeKey} className="text-sm text-stone-400 underline self-center">Remove key from this device</button>}
+        <KeySetup provider={provider} keys={keys} onSave={saveKey} onCancel={apiKey ? () => setEditingKey(false) : null} />
+        {apiKey && <button onClick={removeKey} className="text-sm text-stone-400 underline self-center">Remove the {ai.label} key from this device</button>}
       </div>
     );
   }
@@ -279,7 +348,7 @@ export default function Tutor({ cards, progress, addCards }) {
       ? `[Spoken — speech-recognition transcript]\n${text}` +
         (voice.alternatives.length ? `\n[The recognizer also heard: ${voice.alternatives.join(" / ")}]` : "")
       : text;
-    const userMsg = { role: "user", content };
+    const userMsg = { role: "user", text: content };
     const shown = { role: "user", text: text === DRILL_PROMPT ? "Speaking drill, please! 🎤" : text, spoken: !!voice };
     setChat({ ...before, display: [...before.display, shown] });
 
@@ -287,12 +356,17 @@ export default function Tutor({ cards, progress, addCards }) {
     const usage = { ...before.usage };
     try {
       const result = await runTutorTurn({
+        provider,
         apiKey,
         messages: [...before.api, userMsg],
         app: { getCards: () => cardsRef.current, getProgress: () => progressRef.current, addCards },
         onEvent: (e) => {
           if (e.type === "tool") { tools.push(e); setLiveTools([...tools]); }
-          if (e.type === "usage") { usage.input += e.input; usage.output += e.output; }
+          // Counted per provider: a chat can span both, and they are priced differently.
+          if (e.type === "usage") {
+            const u = usage[e.provider] ?? { input: 0, output: 0 };
+            usage[e.provider] = { input: u.input + e.input, output: u.output + e.output };
+          }
         },
       });
       setChat({
@@ -340,7 +414,8 @@ export default function Tutor({ cards, progress, addCards }) {
   // Drill: answers are spoken in Japanese, so switch the mic to Japanese and start a new chat.
   const startDrill = () => { chooseMicLang("ja-JP"); send(DRILL_PROMPT, null, true); };
   const cost = costOf(chat.usage);
-  const longChat = chat.usage.input > 0 && chat.api.length > 30;
+  const tokens = totalTokens(chat.usage);
+  const longChat = tokens > 0 && chat.api.length > 30;
 
   return (
     <div className="flex flex-col gap-3">
@@ -348,13 +423,13 @@ export default function Tutor({ cards, progress, addCards }) {
         <div className="flex flex-col">
           <span className="text-lg font-semibold text-stone-800">AI Tutor</span>
           <span className="text-[11px] text-stone-400">
-            {chat.usage.input ? `${(chat.usage.input + chat.usage.output).toLocaleString()} tokens · ≈ $${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(3)} this chat` : "Ask anything, or write or speak Japanese to get it checked"}
+            {tokens ? `${tokens.toLocaleString()} tokens · ≈ $${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(3)} this chat` : "Ask anything, or write or speak Japanese to get it checked"}
           </span>
         </div>
         <div className="flex gap-1.5 shrink-0 whitespace-nowrap">
           {chat.display.length > 0 && <button onClick={startDrill} disabled={busy} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-500 flex items-center gap-1 disabled:opacity-40"><Icon name="mic" size={13} /> Drill</button>}
           {chat.display.length > 0 && <button onClick={newChat} disabled={busy} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-500 flex items-center gap-1 disabled:opacity-40"><Icon name="plus" size={13} /> New</button>}
-          <button onClick={() => setEditingKey(true)} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-500">Key</button>
+          <button onClick={() => setEditingKey(true)} title="Change provider or API key" className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-stone-200 text-stone-500">{ai.label}</button>
         </div>
       </div>
 

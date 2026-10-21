@@ -104,10 +104,19 @@ The Sentences section is built on a few well-supported principles:
 
 ## AI Tutor
 
-An optional AI agent built on Claude, working on the app's own data. It needs your own
-Anthropic API key (create one at [console.anthropic.com](https://console.anthropic.com),
-set a spending limit, paste it in the Tutor tab). It uses the cheapest model, Claude
-Haiku; a practice session typically costs well under one cent.
+An optional AI agent working on the app's own data. It runs on **Claude or Mistral** —
+whichever you have a key for. Create one at
+[console.anthropic.com](https://console.anthropic.com) or
+[console.mistral.ai](https://console.mistral.ai/api-keys), set a spending limit, and
+paste it in the Tutor tab; pick the provider there too, and switch at any time, even
+in the middle of a chat. Either way it uses that provider's cheap tier (Claude Haiku or
+Mistral Small), so a practice session typically costs well under one cent.
+
+The agent loop, the tools and their schemas are the same for both. Everything that
+differs between the two APIs lives in one file,
+[`app/src/lib/providers.js`](app/src/lib/providers.js); the terminal version does the
+same port in [`agent/PORTING.md`](agent/PORTING.md), which lists the six differences
+side by side.
 
 - **Speaking drill — "Say it in Japanese":** you get an English sentence from lessons
   you've practised (the ones you struggle with first), say it in Japanese, and the tutor
@@ -183,15 +192,17 @@ backend and no account:
 | `streak` | Daily streak and review count |
 | `kanaMode` | Read / Write / Mix preference |
 | `showRomaji` | Romaji on/off |
-| `tutorApiKey` | Your Anthropic API key, if you use the Tutor |
-| `tutorChat` | The current Tutor conversation |
+| `tutorApiKeys` | Your API keys, one per provider, if you use the Tutor |
+| `tutorProvider` | Which provider the Tutor uses (Claude or Mistral) |
+| `tutorChat2` | The current Tutor conversation |
 | `tutorMicLang` | Microphone language (日本語 / English) |
 | `speaking` | Speaking-drill results: box, due date and last answer per sentence |
 | `tutorMemory` | The tutor's notes about you (its memory between chats) |
 | `textSize` | Text size (Normal / Large / Extra large) |
 
 The Tutor sends your messages, its notes about you and the data its tools read
-(saved words, progress summary, drill results) to Anthropic's API using your key, and spoken input goes through your
+(saved words, progress summary, drill results) to whichever provider you chose —
+Anthropic or Mistral — using your key, and spoken input goes through your
 browser's speech recognition (Apple or Google). Nothing else leaves the device.
 
 Because it's stored per device, progress doesn't sync between your phone and
