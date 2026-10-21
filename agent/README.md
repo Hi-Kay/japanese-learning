@@ -11,3 +11,14 @@ node agent/agent.mjs
 ```
 
 Needs Node 18+. The 🔧 lines show each tool the model chose to call.
+
+## Two providers, one loop
+
+`agent.mjs` runs on Anthropic, `agent-mistral.mjs` on Mistral. The tools, the system
+prompt and the agent loop are identical; only the API shapes differ, and every changed
+line is marked `[DIFF]`. See **[PORTING.md](PORTING.md)** for what differs and why.
+
+```bash
+export MISTRAL_API_KEY="..."   # from console.mistral.ai
+node agent/agent-mistral.mjs
+```
