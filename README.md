@@ -163,7 +163,10 @@ npm run dev
 ```
 
 The dev server serves the app under the `/japanese-learning/` path (the same base
-path it uses in production), so open http://localhost:5173/japanese-learning/.
+path it uses in production), so a bare `localhost:5173` gives you nothing — open
+http://localhost:5173/japanese-learning/. The port is pinned (`--strictPort`), so if
+5173 is already taken the server stops with an error instead of quietly moving to the
+next free port, where you would be looking at a different app.
 
 ```bash
 npm run build     # production build into app/dist
