@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Icon from "./Icon.jsx";
 import WritePanel from "./WritePanel.jsx";
 import WriteCard from "./WriteCard.jsx";
@@ -23,11 +23,54 @@ const SETS = {
 
 // Kanji readings in hiragana, with the romaji underneath when romaji is switched on.
 function KanjiReading({ reading, showRomaji, className = "" }) {
-  const kana = readingToKana(reading);
+  const halves = reading.split(/\s*\/\s*/);
+  // Readings are stored as "on'yomi / kun'yomi"; a single part can be either kind, so it gets no label.
+  if (halves.length !== 2) {
+    const kana = readingToKana(reading);
+    return (
+      <div className={className}>
+        <div className="text-stone-600">{kana ?? reading}</div>
+        {showRomaji && kana && <div className="text-xs text-stone-400">{reading}</div>}
+      </div>
+    );
+  }
   return (
-    <div className={className}>
-      <div className="text-stone-600">{kana ?? reading}</div>
-      {showRomaji && kana && <div className="text-xs text-stone-400">{reading}</div>}
+    <div className={`flex items-start justify-center gap-3 ${className}`}>
+      {halves.map((h, i) => {
+        const kana = readingToKana(h);
+        return (
+          <Fragment key={i}>
+            {i === 1 && <span className="text-stone-300">/</span>}
+            <div className="flex flex-col items-center leading-tight">
+              <span className="text-stone-600">{kana ?? h}</span>
+              {showRomaji && kana && <span className="text-xs text-stone-400">{h}</span>}
+              <span className="text-[10px] text-stone-400 mt-0.5">{i === 0 ? "on'yomi" : "kun'yomi"}</span>
+            </div>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// Short explanation of on'yomi and kun'yomi for the Kanji tab, collapsed by default.
+function ReadingsInfo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="w-full max-w-sm rounded-xl bg-white border border-stone-200 text-left">
+      <button onClick={() => setOpen((o) => !o)} className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-stone-600">
+        Why do kanji have two readings?
+        <span className="text-stone-400">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 flex flex-col gap-2 text-xs text-stone-600 leading-relaxed">
+          <p>Kanji came from China, but Japanese already had its own words. So most kanji got two kinds of reading:</p>
+          <p><b>On'yomi</b> (left of the slash) — the Chinese-derived reading, mostly used when kanji combine into words: <span className="whitespace-nowrap">水曜日 <i>sui</i>-youbi</span> (Wednesday).</p>
+          <p><b>Kun'yomi</b> (right of the slash) — the native Japanese word, mostly used when the kanji stands alone or has hiragana attached: <span className="whitespace-nowrap">水 <i>mizu</i></span> (water), <span className="whitespace-nowrap">食べる <i>ta</i>beru</span> (to eat).</p>
+          <p><b>Rule of thumb:</b> kanji on its own or with hiragana → right side. Two or more kanji together → left side. A few words are simply irregular, like 今日 (きょう).</p>
+          <p className="text-stone-500">The speaker on a single kanji lets your phone's voice pick one reading, so you may hear either. In words and sentences the reading comes from context.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -175,6 +218,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
         {isKanji && (
           <div className="text-[11px] text-stone-500 bg-stone-100 rounded-xl px-3 py-2 text-center max-w-sm -mt-1">Optional for now — Sentences and Kana come first. The Today plan on the Sentences tab tells you what to do.</div>
         )}
+        {isKanji && <ReadingsInfo />}
         {set === "rtk" && (
           <div className="text-[11px] text-stone-400 text-center max-w-sm -mt-2">Ordered like “Remembering the Kanji” — each character builds on parts from earlier ones.</div>
         )}
