@@ -9,6 +9,8 @@ import { speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
 import { countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
 import StatusIcon from "./StatusIcon.jsx";
+import TodayPlan from "./TodayPlan.jsx";
+import { kanaPracticedToday, markToday, nextKanaStep, readToday } from "../lib/today.js";
 
 const keyOf = (s) => `s:${s.id}`;
 const REVIEW_SIZE = 12;
@@ -23,11 +25,12 @@ function shuffleApart(order) {
   return s;
 }
 
-export default function Sentences({ progress, recordResult, showRomaji, onImmersive }) {
+export default function Sentences({ progress, recordResult, showRomaji, onImmersive, onGoKana }) {
   const [view, setView] = useState("home"); // home | intro | session | summary
   const [lessonIdx, setLessonIdx] = useState(null);
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [today, setToday] = useState(readToday);
 
   useEffect(() => {
     onImmersive?.(view !== "home");
@@ -105,7 +108,11 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
         showRomaji={showRomaji}
         onGrade={grade}
         onExit={() => setView(lessonIdx != null ? "intro" : "home")}
-        onFinish={(firstTries) => { setSummary({ right: firstTries.filter(Boolean).length, total: firstTries.length }); setView("summary"); }}
+        onFinish={(firstTries) => {
+          setSummary({ right: firstTries.filter(Boolean).length, total: firstTries.length });
+          setToday(markToday(lessonIdx != null ? { lesson: lessonIdx } : { reviewed: true }));
+          setView("summary");
+        }}
       />
     );
   }
@@ -127,7 +134,7 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
         <div className="max-w-xs text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3">
           {!lesson ? next
             : st.state === "mastered" ? "You know these sentences. They'll come back in Review every few days so you keep them."
-            : st.state === "learned" ? `Come back ${st.next === "now" ? "now" : st.next} for a quick review — reviewing over the next days is what makes it stick.`
+            : st.state === "learned" ? `Review it ${st.next === "now" ? "now" : st.next} — a quick review over the next days is what makes it stick. That's it for this lesson today.`
             : `${st.total - st.learned === 1 ? "One sentence needs" : `${st.total - st.learned} sentences need`} one more round — practice again ${st.next === "now" ? "now" : st.next}.`}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-sm mt-2">
@@ -194,20 +201,38 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
 
   // ----- HOME -----
   const anyStarted = ALL_SENTENCES.some(started);
+
+  // Three steps, about 10 minutes: what's due, one new lesson, one small kana step.
+  function todaySteps() {
+    const steps = [];
+    if (anyStarted) {
+      const n = Math.min(due.length, REVIEW_SIZE);
+      steps.push(today.reviewed || !n
+        ? { title: "Review", detail: today.reviewed ? "Done for today" : "Nothing due right now", done: true }
+        : { title: "Review", detail: `${n} ${n === 1 ? "sentence" : "sentences"} · about ${Math.max(1, Math.round(n / 3))} min`, action: "Start", onClick: startReview });
+    }
+    const lessonToday = today.lesson != null ? LESSONS[today.lesson] : null;
+    if (lessonToday && lessonLearned(lessonToday)) {
+      steps.push({ title: `Lesson ${lessonToday.index + 1} learned`, detail: "One new lesson a day is plenty", done: true });
+    } else if (lessonToday) {
+      const left = lessonToday.sentences.filter((x) => boxOf(x) < 2).length;
+      steps.push({ title: `Finish lesson ${lessonToday.index + 1}`, detail: `${left} ${left === 1 ? "sentence needs" : "sentences need"} one more round`, action: "Practice", onClick: () => startLesson(lessonToday) });
+    } else if (LESSONS.every(lessonLearned)) {
+      steps.push({ title: "All lessons learned", detail: "Keep up the reviews to master them", done: true });
+    } else {
+      steps.push({ title: `New: ${upNext.title}`, detail: `Lesson ${upNext.index + 1} · about 6 min`, action: upNext.sentences.some(started) ? "Continue" : "Start", onClick: () => { setLessonIdx(upNext.index); setView("intro"); } });
+    }
+    const kana = nextKanaStep(progress);
+    if (kana) {
+      steps.push(kanaPracticedToday(progress)
+        ? { title: "Kana", detail: "Practiced today", done: true }
+        : { title: `Kana: ${kana.title}`, detail: `${kana.sample} · about 3 min`, action: "Open", onClick: () => onGoKana?.(kana) });
+    }
+    return steps;
+  }
   return (
     <div className="flex flex-col gap-4">
-      <button onClick={() => { setLessonIdx(upNext.index); setView("intro"); }} className="w-full rounded-3xl bg-white border-2 border-rose-200 p-5 flex flex-col items-center gap-3 text-center shadow-sm active:scale-[0.99] transition">
-        <span className="text-[11px] font-semibold tracking-widest text-rose-400">{anyStarted ? "UP NEXT" : "START HERE"} · LESSON {upNext.index + 1}</span>
-        <span className="text-xl font-semibold text-stone-800 -mt-1">{upNext.title}</span>
-        <SentenceView tokens={formulaTokens(upNext.formula)} gloss={false} size="sm" />
-        <span className="text-sm text-stone-500">{upNext.gist}</span>
-        <span className="w-full py-3 rounded-2xl bg-rose-500 text-white font-medium">{upNext.sentences.some(started) ? "Continue" : "Start"}</span>
-      </button>
-      {anyStarted && (
-        <button onClick={startReview} disabled={!due.length} className="w-full py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-700 font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-          <Icon name="cards" size={18} /> {due.length ? <>Review <span className="text-stone-400 text-sm font-normal">· {Math.min(due.length, REVIEW_SIZE)} {due.length === 1 ? "sentence" : "sentences"}</span></> : "Review · all caught up"}
-        </button>
-      )}
+      <TodayPlan steps={todaySteps()} />
       <div className="flex flex-col gap-1.5 mt-1">
         <div className="text-xs font-medium text-stone-500 px-1">All lessons</div>
         {LESSONS.map((l) => {

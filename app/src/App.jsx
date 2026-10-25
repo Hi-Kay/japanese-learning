@@ -24,6 +24,9 @@ export default function App() {
   const [showRomaji, setShowRomaji] = useState(() => storage.get("showRomaji") !== "0");
   const toggleRomaji = () => setShowRomaji((v) => { storage.set("showRomaji", v ? "0" : "1"); return !v; });
   const [voiceOpen, setVoiceOpen] = useState(false);
+  // Where the Kana tab should open when the Today plan sends the learner there.
+  const [kanaFocus, setKanaFocus] = useState(null);
+  const goKana = (focus) => { setKanaFocus(focus); setTab("kana"); };
   const [cards, setCards] = useState([]);
   const [progress, setProgress] = useState({});
   const [streak, setStreak] = useState(DEFAULT_STREAK);
@@ -101,8 +104,11 @@ export default function App() {
             <p className="text-sm text-stone-400">Your Japanese study companion</p>
             <div className="flex items-center gap-2">
               <StreakBadge streak={streak} />
-              <button onClick={toggleRomaji} className={`px-3 py-1 rounded-full text-xs font-medium border transition ${showRomaji ? "bg-white border-stone-200 text-stone-500" : "bg-stone-800 border-stone-800 text-white"}`} title="Show or hide romaji (Latin letters) under Japanese">
-                {showRomaji ? "Romaji on" : "Romaji off"}
+              <button role="switch" aria-checked={showRomaji} onClick={toggleRomaji} className="pl-3 pr-1.5 py-1 rounded-full text-xs font-medium border bg-white border-stone-200 text-stone-600 flex items-center gap-2" title="Show or hide romaji (Latin letters) under Japanese">
+                Romaji
+                <span className={`relative w-8 h-[18px] rounded-full transition-colors ${showRomaji ? "bg-emerald-500" : "bg-stone-300"}`}>
+                  <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-all ${showRomaji ? "left-[16px]" : "left-[2px]"}`} />
+                </span>
               </button>
               <button onClick={() => setVoiceOpen((o) => !o)} className={`px-3 py-1 rounded-full text-xs font-medium border transition flex items-center gap-1 ${voiceOpen ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-white border-stone-200 text-stone-500"}`} title="Choose the Japanese voice">
                 <Icon name="volume" size={13} /> Voice
@@ -112,8 +118,8 @@ export default function App() {
             {voiceOpen && <VoicePicker onClose={() => setVoiceOpen(false)} />}
           </header>
         )}
-        {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} />}
-        {tab === "kana" && <Study setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
+        {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} onGoKana={goKana} />}
+        {tab === "kana" && <Study focus={kanaFocus} setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "tutor" && <Tutor cards={cards} progress={progress} addCards={addCards} />}
         {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} showRomaji={showRomaji} />}
@@ -124,7 +130,7 @@ export default function App() {
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
-              <button key={t.id} onClick={() => setTab(t.id)} className={`flex-1 py-3 flex flex-col items-center gap-1 transition ${active ? "text-rose-500" : "text-stone-400"}`}>
+              <button key={t.id} onClick={() => { setKanaFocus(null); setTab(t.id); }} className={`flex-1 py-3 flex flex-col items-center gap-1 transition ${active ? "text-rose-500" : "text-stone-400"}`}>
                 <Icon name={t.icon} size={22} />
                 <span className="text-xs font-medium">{t.label}</span>
               </button>

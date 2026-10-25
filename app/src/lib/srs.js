@@ -1,4 +1,7 @@
-export const BOX_INTERVALS = [0, 60e3, 600e3, 86400e3, 259200e3, 864000e3];
+// Wait before the next review, by level: a mistake comes back after a minute; once
+// something is learned (level 2) reviews follow a daily rhythm — tomorrow, in 3 days,
+// in 10 days, in a month.
+export const BOX_INTERVALS = [0, 60e3, 86400e3, 259200e3, 864000e3, 2592000e3];
 export const MASTER_BOX = 3;
 export const SESSION_SIZE = 20;
 

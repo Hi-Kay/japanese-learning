@@ -6,7 +6,7 @@ import VariantNote from "./VariantNote.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
 import { ExtraGroupList, KanaGroup } from "./KanaExtra.jsx";
-import { HIRAGANA, KATAKANA } from "../data/kana.js";
+import { HIRAGANA, KATAKANA, KANA_ROWS } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
 import { RTK_200, STAGE_SIZE } from "../data/rtk.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
@@ -20,14 +20,6 @@ const SETS = {
   rtk: { label: "RTK 1–200", source: RTK_200, kanjiLike: true },
 };
 
-// Gojūon rows — kana are learned row by row, like every textbook teaches them.
-const KANA_ROWS = [
-  { label: "a", start: 0, len: 5 }, { label: "ka", start: 5, len: 5 },
-  { label: "sa", start: 10, len: 5 }, { label: "ta", start: 15, len: 5 },
-  { label: "na", start: 20, len: 5 }, { label: "ha", start: 25, len: 5 },
-  { label: "ma", start: 30, len: 5 }, { label: "ya", start: 35, len: 3 },
-  { label: "ra", start: 38, len: 5 }, { label: "wa–n", start: 43, len: 3 },
-];
 
 // Kanji readings in hiragana, with the romaji underneath when romaji is switched on.
 function KanjiReading({ reading, showRomaji, className = "" }) {
@@ -51,8 +43,8 @@ function ModeChip({ kind }) {
   return <span className={`text-[10px] font-semibold tracking-widest px-2.5 py-1 rounded-full ${styles[kind]}`}>{labels[kind]}</span>;
 }
 
-export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive, showRomaji }) {
-  const [set, setSet] = useState(setIds[0]);
+export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive, showRomaji, focus }) {
+  const [set, setSet] = useState(focus && setIds.includes(focus.set) ? focus.set : setIds[0]);
   const [view, setView] = useState("home");
   const [learnIdx, setLearnIdx] = useState(0);
   const [learnFlipped, setLearnFlipped] = useState(false);
@@ -62,7 +54,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   const [flipped, setFlipped] = useState(false);
   const [results, setResults] = useState([]);
   const [kanaMode, setKanaMode] = useState(() => storage.get("kanaMode") || "mix");
-  const [extraGroup, setExtraGroup] = useState(null); // open dakuten / yōon / … group
+  const [extraGroup, setExtraGroup] = useState(focus?.group ?? null); // open dakuten / yōon / … group
   const baselineKnown = useRef(new Set());
 
   const isKanji = SETS[set].kanjiLike;
@@ -77,6 +69,13 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   }, [view, writeChar, extraGroup, onImmersive]);
 
   const changeKanaMode = (m) => { setKanaMode(m); storage.set("kanaMode", m); };
+
+  // Sent here by the Today plan to practice a kana row: start that row right away.
+  useEffect(() => {
+    if (focus?.row == null) return;
+    const r = KANA_ROWS[focus.row];
+    startReview(source.slice(r.start, r.start + r.len));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boxOf = (ch, d) => progress[`${ch}|${d}`]?.box || 0;
   const statusOf = (ch) => {
@@ -173,6 +172,9 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           <span className="text-3xl font-semibold text-emerald-500">{knownCount}</span>
           <span className="text-sm text-stone-400">of {source.length} known</span>
         </div>
+        {isKanji && (
+          <div className="text-[11px] text-stone-500 bg-stone-100 rounded-xl px-3 py-2 text-center max-w-sm -mt-1">Optional for now — Sentences and Kana come first. The Today plan on the Sentences tab tells you what to do.</div>
+        )}
         {set === "rtk" && (
           <div className="text-[11px] text-stone-400 text-center max-w-sm -mt-2">Ordered like “Remembering the Kanji” — each character builds on parts from earlier ones.</div>
         )}

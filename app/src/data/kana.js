@@ -33,3 +33,13 @@ export const KANA_VARIANTS = {
   "ふ": "Printed ふ can look connected; by hand it's usually written as 4 separate strokes.",
   "ゆ": "Printed ゆ can look like one connected stroke; by hand the loop and the vertical are separate.",
 };
+
+// Gojūon rows — kana are learned row by row, like every textbook teaches them.
+export const KANA_ROWS = [
+  { label: "a", start: 0, len: 5 }, { label: "ka", start: 5, len: 5 },
+  { label: "sa", start: 10, len: 5 }, { label: "ta", start: 15, len: 5 },
+  { label: "na", start: 20, len: 5 }, { label: "ha", start: 25, len: 5 },
+  { label: "ma", start: 30, len: 5 }, { label: "ya", start: 35, len: 3 },
+  { label: "ra", start: 38, len: 5 }, { label: "wa–n", start: 43, len: 3 },
+];
+

@@ -188,7 +188,7 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
         <div className="text-sm text-stone-500">{summary.right} of {summary.total} right on the first try</div>
         <div className="max-w-xs text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3">
           {st.state === "mastered" ? "You know all of these. Practice now and then so you keep them."
-            : st.state === "learned" ? `All ${st.total} learned. Come back ${st.next} for a quick review — that's what makes it stick.`
+            : st.state === "learned" ? `All ${st.total} learned. Review them ${st.next} — a quick review over the next days is what makes it stick.`
             : `${st.learned} of ${st.total} learned. ${left === 1 ? "One more needs" : `${left} more need`} practice — ${st.next === "now" ? "keep going now" : `come back ${st.next}`}.`}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-sm mt-2">

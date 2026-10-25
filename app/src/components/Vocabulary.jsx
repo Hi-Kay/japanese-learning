@@ -7,6 +7,30 @@ import TextSizeButton from "./TextSizeButton.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 import { hasKanji, phraseToKana } from "../lib/romaji.js";
+import SentenceView from "./SentenceView.jsx";
+import { EXAMPLE_PARTS } from "../data/vocabExamples.js";
+
+// An example sentence, broken into colored blocks with each word's reading and meaning.
+function ExampleView({ example, showRomaji }) {
+  const parts = EXAMPLE_PARTS[example.jp];
+  return (
+    <div className="mt-4 pt-4 border-t border-stone-100 flex flex-col items-center gap-2">
+      <span className="text-[11px] text-stone-400 flex items-center gap-1.5">
+        Example
+        <span role="button" onClick={(e) => { e.stopPropagation(); speak(example.jp); }} className="p-1 rounded-full bg-rose-50 text-rose-500" title="Hear the example"><Icon name="volume" size={13} /></span>
+      </span>
+      {parts ? (
+        <SentenceView tokens={parts} showRomaji={showRomaji} size="sm" />
+      ) : (
+        <>
+          <span className="text-lg text-stone-800">{example.jp}</span>
+          {showRomaji && <span className="text-sm text-rose-400 italic">{example.reading}</span>}
+        </>
+      )}
+      <span className="text-sm text-stone-500">{example.meaning}</span>
+    </div>
+  );
+}
 
 // Words written with kanji get their reading in hiragana; romaji follows the romaji setting.
 const kanaReading = (it) => (hasKanji(it.jp) ? phraseToKana(it.reading) : null);
@@ -195,15 +219,10 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
             <div className="text-4xl font-medium text-stone-800">{it.jp}</div>
           ) : (
             <div>
+              <div className="text-3xl font-medium text-stone-800 mb-1">{it.jp}</div>
               <WordReading item={it} mine={isMine} showRomaji={showRomaji} />
               <div className="text-base text-stone-600 mt-1">{it.meaning}</div>
-              {it.example && (
-                <div className="mt-4 pt-4 border-t border-stone-100 text-left">
-                  <div className="text-lg text-stone-800">{it.example.jp}</div>
-                  <div className="text-sm text-rose-400 italic mt-0.5">{it.example.reading}</div>
-                  <div className="text-sm text-stone-500 mt-0.5">{it.example.meaning}</div>
-                </div>
-              )}
+              {it.example && <ExampleView example={it.example} showRomaji={showRomaji} />}
             </div>
           )}
           <div className="text-xs text-stone-300 mt-1">{learnFlipped ? "" : "tap to flip"}</div>
@@ -246,16 +265,10 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
             )
           ) : (
             <div>
-              {listenMode && <div className="text-3xl font-medium text-stone-800 mb-1">{it.jp}</div>}
+              <div className="text-3xl font-medium text-stone-800 mb-1">{it.jp}</div>
               <WordReading item={it} mine={isMine} showRomaji={showRomaji} />
               <div className="text-base text-stone-600 mt-1">{it.meaning}</div>
-              {it.example && (
-                <div className="mt-4 pt-4 border-t border-stone-100 text-left">
-                  <div className="text-lg text-stone-800">{it.example.jp}</div>
-                  <div className="text-sm text-rose-400 italic mt-0.5">{it.example.reading}</div>
-                  <div className="text-sm text-stone-500 mt-0.5">{it.example.meaning}</div>
-                </div>
-              )}
+              {it.example && <ExampleView example={it.example} showRomaji={showRomaji} />}
             </div>
           )}
           <div className="text-xs text-stone-300 mt-1">{flipped ? "" : listenMode ? "tap speaker to replay · tap card to reveal" : "tap to flip"}</div>
