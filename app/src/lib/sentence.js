@@ -50,7 +50,7 @@ export function structure(tokens) {
 
 // Words whose kanji a speech engine might read the wrong way (明日 as あす,
 // 家 as うち…) are spoken from their kana reading instead.
-const SPEAK_KANA = new Set(["ashita", "kinou", "ie", "nan", "nani", "nihon"]);
+const SPEAK_KANA = new Set(["ashita", "kinou", "ie", "nan", "nani", "nihon", "doitsujin"]);
 const reading = (jp) => parseFurigana(jp).map((s) => s.rt ?? s.text).join("");
 const spoken = (t) => (SPEAK_KANA.has(t.id) ? reading(t.jp) : surface(t.jp)) + (t.comma ? "、" : "");
 
