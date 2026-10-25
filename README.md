@@ -134,9 +134,9 @@ side by side.
   *Tutor remembers…* to read or delete them.
 - Readings appear above kanji, as everywhere in the app.
 
-How it works: [app/src/lib/tutor.js](app/src/lib/tutor.js) is a hand-written agent
-loop (no framework) — the model picks a tool, the app runs it, the result goes back,
-repeat. The same idea as a terminal script is in [agent/](agent/).
+How it works: [app/src/lib/tutor.js](app/src/lib/tutor.js) is a plain agent loop with
+no framework — the model picks a tool, the app runs it, the result goes back, repeat.
+The same idea as a terminal script is in [agent/](agent/).
 
 ## Repo layout
 
