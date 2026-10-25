@@ -4,7 +4,9 @@ import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
 import { KANA_EXTRA } from "../data/kanaExtra.js";
 import { contrastOf, makeExercise } from "../lib/kanaQuiz.js";
-import { MASTER_BOX, shuffle, speak } from "../lib/srs.js";
+import { shuffle, speak } from "../lib/srs.js";
+import { LEARNED, MASTERED, countsForProgress, progressStatus, statusLine } from "../lib/progressStatus.js";
+import StatusIcon from "./StatusIcon.jsx";
 
 const keyOf = (it) => `x:${it.kana}|rec`;
 const SESSION = 12;
@@ -113,8 +115,7 @@ function Quiz({ group, items, showRomaji, onGrade, onExit, onFinish }) {
 }
 
 const boxOf = (progress, it) => progress[keyOf(it)]?.box || 0;
-const groupScore = (progress, g) => g.items.reduce((a, it) => a + Math.min(boxOf(progress, it), MASTER_BOX), 0) / (g.items.length * MASTER_BOX);
-const knownIn = (progress, g) => g.items.filter((it) => boxOf(progress, it) >= MASTER_BOX).length;
+const statusOf = (progress, g) => progressStatus(g.items, keyOf, progress);
 const dueIn = (progress, g) => g.items.filter((it) => { const st = progress[keyOf(it)]; return !st || st.due <= Date.now(); }).length;
 
 // Cards for the Kana home screen.
@@ -126,17 +127,15 @@ export function ExtraGroupList({ script, progress, onOpen }) {
         <div className="text-[11px] text-stone-400">Best after the basic rows above</div>
       </div>
       {KANA_EXTRA[script].map((g) => {
-        const score = groupScore(progress, g);
+        const st = statusOf(progress, g);
         return (
           <button key={g.id} onClick={() => onOpen(g.id)} className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-stone-200 text-left active:scale-[0.99] transition">
             <span className="w-11 h-11 shrink-0 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center text-xl text-stone-700">{g.symbol}</span>
-            <span className="flex-1 min-w-0 flex flex-col gap-1">
-              <span className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium text-stone-800">{g.title} <span className="text-stone-400 font-normal text-xs">· {g.subtitle}</span></span>
-                <span className="text-[11px] text-stone-400 shrink-0">{knownIn(progress, g)}/{g.items.length}</span>
-              </span>
-              <span className="h-1 rounded-full bg-stone-100 overflow-hidden"><span className="block h-full bg-emerald-400 rounded-full" style={{ width: `${score * 100}%` }} /></span>
+            <span className="flex-1 min-w-0 flex flex-col">
+              <span className="text-sm font-medium text-stone-800 truncate">{g.title} <span className="text-stone-400 font-normal text-xs">· {g.subtitle}</span></span>
+              <span className={`text-[11px] truncate ${st.dueNow && st.state !== "mastered" ? "text-rose-500 font-medium" : "text-stone-400"}`}>{statusLine(st) ?? `${g.items.length} to learn`}</span>
             </span>
+            {st.state !== "new" && <StatusIcon state={st.state} />}
           </button>
         );
       })}
@@ -165,11 +164,8 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
     setView("quiz");
   };
 
-  // Only recall on a later occasion moves an item up; mistakes always count.
   const grade = (it, got) => {
-    const st = progress[keyOf(it)];
-    if (got && st && st.due > Date.now()) return;
-    recordResult(keyOf(it), got);
+    if (countsForProgress(progress[keyOf(it)], got)) recordResult(keyOf(it), got);
   };
 
   if (view === "quiz") {
@@ -181,14 +177,19 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
   }
 
   if (view === "summary") {
+    const st = statusOf(progress, group);
+    const left = st.total - st.learned;
     return (
       <div className="flex flex-col items-center gap-4 text-center pt-8">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Icon name="check" size={32} /></div>
-        <div className="text-xl font-semibold text-stone-800">{group.title} practice done</div>
+        <StatusIcon state={st.state} size="lg" />
+        <div className="text-xl font-semibold text-stone-800">
+          {st.state === "mastered" ? `${group.title} mastered` : st.state === "learned" ? `${group.title} learned` : `${group.title} practiced`}
+        </div>
         <div className="text-sm text-stone-500">{summary.right} of {summary.total} right on the first try</div>
-        <div className="w-full max-w-xs flex flex-col gap-1">
-          <div className="h-2 rounded-full bg-stone-200 overflow-hidden"><div className="h-full bg-emerald-400 rounded-full" style={{ width: `${groupScore(progress, group) * 100}%` }} /></div>
-          <div className="text-[11px] text-stone-400">{knownIn(progress, group)} of {group.items.length} known</div>
+        <div className="max-w-xs text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3">
+          {st.state === "mastered" ? "You know all of these. Practice now and then so you keep them."
+            : st.state === "learned" ? `All ${st.total} learned. Come back ${st.next} for a quick review — that's what makes it stick.`
+            : `${st.learned} of ${st.total} learned. ${left === 1 ? "One more needs" : `${left} more need`} practice — ${st.next === "now" ? "keep going now" : `come back ${st.next}`}.`}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-sm mt-2">
           <button onClick={start} className="py-3.5 rounded-2xl bg-rose-500 text-white font-medium">Practice again</button>
@@ -199,10 +200,12 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
   }
 
   const due = dueIn(progress, group);
+  // Same colors as the status icons: learning → learned → mastered
   const tileCls = (it) => {
     const b = boxOf(progress, it);
     if (!progress[keyOf(it)]) return "bg-white border-stone-200 text-stone-700";
-    if (b >= MASTER_BOX) return "bg-emerald-500 border-emerald-500 text-white";
+    if (b >= MASTERED) return "bg-amber-400 border-amber-400 text-white";
+    if (b >= LEARNED) return "bg-emerald-500 border-emerald-500 text-white";
     return "bg-emerald-100 border-emerald-200 text-emerald-800";
   };
   return (

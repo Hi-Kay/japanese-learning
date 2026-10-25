@@ -7,10 +7,10 @@ import TextSizeButton from "./TextSizeButton.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
 import { speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
+import { countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
+import StatusIcon from "./StatusIcon.jsx";
 
 const keyOf = (s) => `s:${s.id}`;
-const LEARNED = 2; // practiced correctly on two separate occasions → move on
-const MASTERED = 4; // still remembered after days → mastered
 const REVIEW_SIZE = 12;
 
 const PARTICLE_CHARS = new Set(["は", "が", "を", "に", "で", "か"]);
@@ -36,9 +36,8 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
 
   const boxOf = (s) => progress[keyOf(s)]?.box || 0;
   const started = (s) => !!progress[keyOf(s)];
-  const lessonScore = (l) => l.sentences.reduce((a, s) => a + Math.min(boxOf(s), MASTERED), 0) / (l.sentences.length * MASTERED);
-  const lessonLearned = (l) => l.sentences.every((s) => boxOf(s) >= LEARNED);
-  const lessonMastered = (l) => l.sentences.every((s) => boxOf(s) >= MASTERED);
+  const statusOf = (l) => progressStatus(l.sentences, keyOf, progress);
+  const lessonLearned = (l) => ["learned", "mastered"].includes(statusOf(l).state);
   const upNext = LESSONS.find((l) => !lessonLearned(l)) ?? LESSONS.at(-1);
   const now = Date.now();
   const due = ALL_SENTENCES.filter((s) => started(s) && progress[keyOf(s)].due <= now)
@@ -86,12 +85,15 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
     setView("session");
   };
 
-  // Correct answers only move a sentence up when it was due — re-practicing
-  // the same day doesn't count as remembering it. Mistakes always count.
+  const nextReviewText = () => {
+    const upcoming = ALL_SENTENCES.filter(started).map((x) => progress[keyOf(x)].due);
+    if (!upcoming.length) return "";
+    const when = whenText(Math.min(...upcoming));
+    return when === "now" ? "Some sentences are ready again — review once more to lock them in." : `All caught up. Next review ${when}.`;
+  };
+
   const grade = (s, got) => {
-    const st = progress[keyOf(s)];
-    if (got && st && st.due > Date.now()) return;
-    recordResult(keyOf(s), got);
+    if (countsForProgress(progress[keyOf(s)], got)) recordResult(keyOf(s), got);
   };
 
   // ----- SESSION -----
@@ -112,19 +114,22 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
   if (view === "summary" && summary) {
     const lesson = lessonIdx != null ? LESSONS[lessonIdx] : null;
     const nextLesson = lesson && lessonLearned(lesson) ? LESSONS[lesson.index + 1] : null;
+    const st = lesson ? statusOf(lesson) : progressStatus(ALL_SENTENCES.filter(started), keyOf, progress);
+    const title = !lesson ? "Review done"
+      : st.state === "mastered" ? `Lesson ${lesson.index + 1} mastered`
+      : st.state === "learned" ? `Lesson ${lesson.index + 1} learned` : `Lesson ${lesson.index + 1} practiced`;
+    const next = lesson ? null : nextReviewText();
     return (
       <div className="flex flex-col items-center gap-4 text-center pt-8">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Icon name="check" size={32} /></div>
-        <div className="text-xl font-semibold text-stone-800">{lesson ? `Lesson ${lesson.index + 1} done` : "Review done"}</div>
+        <StatusIcon state={lesson ? st.state : "learned"} size="lg" />
+        <div className="text-xl font-semibold text-stone-800">{title}</div>
         <div className="text-sm text-stone-500">{summary.right} of {summary.total} right on the first try</div>
-        {lesson && (
-          <div className="w-full max-w-xs flex flex-col gap-1">
-            <div className="h-2 rounded-full bg-stone-200 overflow-hidden"><div className="h-full bg-emerald-400 rounded-full" style={{ width: `${lessonScore(lesson) * 100}%` }} /></div>
-            <div className="text-[11px] text-stone-400">
-              {lessonMastered(lesson) ? "Mastered" : lessonLearned(lesson) ? "Learned — review over the next days to master it" : "Practice once more later today to lock it in"}
-            </div>
-          </div>
-        )}
+        <div className="max-w-xs text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3">
+          {!lesson ? next
+            : st.state === "mastered" ? "You know these sentences. They'll come back in Review every few days so you keep them."
+            : st.state === "learned" ? `Come back ${st.next === "now" ? "now" : st.next} for a quick review — reviewing over the next days is what makes it stick.`
+            : `${st.total - st.learned === 1 ? "One sentence needs" : `${st.total - st.learned} sentences need`} one more round — practice again ${st.next === "now" ? "now" : st.next}.`}
+        </div>
         <div className="flex flex-col gap-2 w-full max-w-sm mt-2">
           {nextLesson && <button onClick={() => { setLessonIdx(nextLesson.index); setView("intro"); }} className="py-3.5 rounded-2xl bg-rose-500 text-white font-medium">Next: {nextLesson.title}</button>}
           {lesson && <button onClick={() => startLesson(lesson)} className={`py-3.5 rounded-2xl font-medium ${nextLesson ? "bg-white border-2 border-stone-200 text-stone-600" : "bg-rose-500 text-white"}`}>Practice again</button>}
@@ -206,19 +211,14 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
       <div className="flex flex-col gap-1.5 mt-1">
         <div className="text-xs font-medium text-stone-500 px-1">All lessons</div>
         {LESSONS.map((l) => {
-          const score = lessonScore(l);
-          const mastered = lessonMastered(l);
+          const st = statusOf(l);
+          const line = statusLine(st);
           return (
             <button key={l.id} onClick={() => { setLessonIdx(l.index); setView("intro"); }} className={`flex items-center gap-3 p-3 rounded-2xl bg-white border text-left ${l === upNext ? "border-rose-200" : "border-stone-200"}`}>
-              <span className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold ${mastered ? "bg-emerald-500 text-white" : score > 0 ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 text-stone-400"}`}>
-                {mastered ? <Icon name="check" size={16} /> : l.index + 1}
-              </span>
-              <span className="flex-1 min-w-0 flex flex-col gap-1">
-                <span className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium text-stone-800 truncate">{l.title}</span>
-                  <span className="text-[11px] text-stone-400 truncate">{l.gist}</span>
-                </span>
-                <span className="h-1 rounded-full bg-stone-100 overflow-hidden"><span className="block h-full bg-emerald-400 rounded-full" style={{ width: `${score * 100}%` }} /></span>
+              <StatusIcon state={st.state} label={l.index + 1} />
+              <span className="flex-1 min-w-0 flex flex-col">
+                <span className="text-sm font-medium text-stone-800 truncate">{l.title}</span>
+                <span className={`text-[11px] truncate ${st.dueNow && st.state !== "mastered" ? "text-rose-500 font-medium" : "text-stone-400"}`}>{line ?? l.gist}</span>
               </span>
             </button>
           );
