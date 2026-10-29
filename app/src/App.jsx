@@ -7,7 +7,7 @@ import Tutor from "./components/Tutor.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
-import { BOX_INTERVALS } from "./lib/srs.js";
+import { nextDue } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
 import TextSizeButton from "./components/TextSizeButton.jsx";
 
@@ -57,8 +57,8 @@ export default function App() {
     setProgress((prev) => {
       const cur = prev[key] || { box: 0, n: 0, due: 0 };
       const box = got ? Math.min(5, cur.box + 1) : 1;
-      const due = Date.now() + BOX_INTERVALS[box];
-      return { ...prev, [key]: { box, n: cur.n + 1, due } };
+      const now = Date.now();
+      return { ...prev, [key]: { box, n: cur.n + 1, due: nextDue(box, now), seen: now } };
     });
     setStreak((prev) => bumpStreak(prev));
   }, []);
@@ -119,7 +119,7 @@ export default function App() {
           </header>
         )}
         {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} onGoKana={goKana} />}
-        {tab === "kana" && <Study focus={kanaFocus} setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
+        {tab === "kana" && <Study focus={kanaFocus} onFocusDone={() => { setKanaFocus(null); setTab("sentences"); }} setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "tutor" && <Tutor cards={cards} progress={progress} addCards={addCards} />}
         {tab === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} showRomaji={showRomaji} />}

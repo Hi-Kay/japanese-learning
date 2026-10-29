@@ -2,6 +2,17 @@
 // something is learned (level 2) reviews follow a daily rhythm — tomorrow, in 3 days,
 // in 10 days, in a month.
 export const BOX_INTERVALS = [0, 60e3, 86400e3, 259200e3, 864000e3, 2592000e3];
+
+// When an item at this level is next due. Daily reviews are due from the start of
+// that day, not to the minute: everything due "tomorrow" is ready in the morning and
+// one review clears it, instead of items trickling in at the hour you last saw them.
+const DAY = 86400e3;
+export function nextDue(box, now = Date.now()) {
+  const wait = BOX_INTERVALS[box];
+  if (wait < DAY) return now + wait;
+  const d = new Date(now);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + Math.round(wait / DAY)).getTime();
+}
 export const MASTER_BOX = 3;
 export const SESSION_SIZE = 20;
 

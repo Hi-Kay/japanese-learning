@@ -8,13 +8,12 @@ export const MASTERED = 4;
 // "now", "in 8 min", "later today", "tomorrow", "in 3 days"
 export function whenText(due, now = Date.now()) {
   if (due <= now) return "now";
-  const min = Math.ceil((due - now) / 60000);
-  if (min < 60) return `in ${min} min`;
   const day = (t) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
   const days = Math.round((day(due) - day(now)) / 86400000);
-  if (days === 0) return "later today";
   if (days === 1) return "tomorrow";
-  return `in ${days} days`;
+  if (days > 1) return `in ${days} days`;
+  const min = Math.ceil((due - now) / 60000);
+  return min < 60 ? `in ${min} min` : "later today";
 }
 
 export function progressStatus(items, keyOf, progress, now = Date.now()) {

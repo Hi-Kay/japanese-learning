@@ -72,18 +72,19 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
     const particles = particlesKnownBy(Math.max(l.index, frontier));
     const fresh = l.sentences.filter((s) => !started(s));
     const seen = l.sentences.filter(started);
-    const reviews = due.filter((s) => s.lesson !== l.index).slice(0, 3);
+    // Only this lesson's sentences, so the session stays on one pattern; reviews of
+    // other lessons have their own step in the Today plan.
     // New sentences are met twice: first by ear, then built — receptive before productive.
-    const first = shuffle([...fresh.map((s) => makeItem(s, "listen", particles)), ...reviews.map((s) => makeItem(s, typeFor(s), particles))]);
+    const first = shuffle(fresh.map((s) => makeItem(s, "listen", particles)));
     const second = shuffle([...fresh.map((s) => makeItem(s, "build", particles)), ...seen.map((s) => makeItem(s, typeFor(s), particles))]);
     setItems([...first, ...second]);
     setLessonIdx(l.index);
     setView("session");
   };
 
-  const startReview = () => {
+  const startReview = (list = due) => {
     const particles = particlesKnownBy(frontier);
-    setItems(due.slice(0, REVIEW_SIZE).map((s) => makeItem(s, typeFor(s), particles)));
+    setItems(list.slice(0, REVIEW_SIZE).map((s) => makeItem(s, typeFor(s), particles)));
     setLessonIdx(null);
     setView("session");
   };
@@ -204,29 +205,40 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
 
   // Three steps, about 10 minutes: what's due, one new lesson, one small kana step.
   function todaySteps() {
-    const steps = [];
-    if (anyStarted) {
-      const n = Math.min(due.length, REVIEW_SIZE);
-      steps.push(today.reviewed || !n
-        ? { title: "Review", detail: today.reviewed ? "Done for today" : "Nothing due right now", done: true }
-        : { title: "Review", detail: `${n} ${n === 1 ? "sentence" : "sentences"} · about ${Math.max(1, Math.round(n / 3))} min`, action: "Start", onClick: startReview });
-    }
+    // The lesson step: today's lesson until it's learned, otherwise the next one —
+    // including a lesson started on an earlier day and not finished yet.
     const lessonToday = today.lesson != null ? LESSONS[today.lesson] : null;
+    let lessonStep;
+    let planLesson = null;
     if (lessonToday && lessonLearned(lessonToday)) {
-      steps.push({ title: `Lesson ${lessonToday.index + 1} learned`, detail: "One new lesson a day is plenty", done: true });
-    } else if (lessonToday) {
-      const left = lessonToday.sentences.filter((x) => boxOf(x) < 2).length;
-      steps.push({ title: `Finish lesson ${lessonToday.index + 1}`, detail: `${left} ${left === 1 ? "sentence needs" : "sentences need"} one more round`, action: "Practice", onClick: () => startLesson(lessonToday) });
-    } else if (LESSONS.every(lessonLearned)) {
-      steps.push({ title: "All lessons learned", detail: "Keep up the reviews to master them", done: true });
+      lessonStep = { title: `Lesson ${lessonToday.index + 1} learned`, detail: "One new lesson a day is plenty", done: true };
+    } else if (!lessonToday && LESSONS.every(lessonLearned)) {
+      lessonStep = { title: "All lessons learned", detail: "Keep up the reviews to master them", done: true };
     } else {
-      steps.push({ title: `New: ${upNext.title}`, detail: `Lesson ${upNext.index + 1} · about 6 min`, action: upNext.sentences.some(started) ? "Continue" : "Start", onClick: () => { setLessonIdx(upNext.index); setView("intro"); } });
+      const l = lessonToday ?? upNext;
+      const st = statusOf(l);
+      planLesson = l.index;
+      lessonStep = st.state === "new"
+        ? { title: `New: ${l.title}`, detail: `Lesson ${l.index + 1} · about 6 min`, action: "Start", onClick: () => { setLessonIdx(l.index); setView("intro"); } }
+        : { title: `Finish: ${l.title}`, detail: `Lesson ${l.index + 1} · ${st.learned} of ${st.total} learned`, action: "Start", onClick: () => startLesson(l) };
     }
+
+    const steps = [];
+    // The review step shows what is actually open right now. Sentences of the lesson
+    // in the lesson step are left out, so nothing is counted twice.
+    if (anyStarted) {
+      const open = due.filter((x) => x.lesson !== planLesson);
+      const n = Math.min(open.length, REVIEW_SIZE);
+      steps.push(n
+        ? { title: "Review", detail: `${n} ${n === 1 ? "sentence" : "sentences"} · about ${Math.max(1, Math.round(n / 3))} min`, action: "Start", onClick: () => startReview(open) }
+        : { title: "Review", detail: today.reviewed ? "Done for today" : "Nothing due right now", done: true });
+    }
+    steps.push(lessonStep);
     const kana = nextKanaStep(progress);
     if (kana) {
       steps.push(kanaPracticedToday(progress)
         ? { title: "Kana", detail: "Practiced today", done: true }
-        : { title: `Kana: ${kana.title}`, detail: `${kana.sample} · about 3 min`, action: "Open", onClick: () => onGoKana?.(kana) });
+        : { title: `Kana: ${kana.title}`, detail: `${kana.sample} · about 3 min`, action: "Start", onClick: () => onGoKana?.(kana) });
     }
     return steps;
   }

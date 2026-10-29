@@ -86,7 +86,7 @@ function ModeChip({ kind }) {
   return <span className={`text-[10px] font-semibold tracking-widest px-2.5 py-1 rounded-full ${styles[kind]}`}>{labels[kind]}</span>;
 }
 
-export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive, showRomaji, focus }) {
+export default function Study({ onAddCard, progress, recordResult, setIds, onImmersive, showRomaji, focus, onFocusDone }) {
   const [set, setSet] = useState(focus && setIds.includes(focus.set) ? focus.set : setIds[0]);
   const [view, setView] = useState("home");
   const [learnIdx, setLearnIdx] = useState(0);
@@ -112,6 +112,15 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   }, [view, writeChar, extraGroup, onImmersive]);
 
   const changeKanaMode = (m) => { setKanaMode(m); storage.set("kanaMode", m); };
+
+  // Opened from the Today plan: once the practice (or the group page) is closed,
+  // go back to the plan instead of staying on the Kana tab.
+  const sawFocusedPractice = useRef(false);
+  useEffect(() => {
+    if (!focus) return;
+    if (view !== "home" || extraGroup) { sawFocusedPractice.current = true; return; }
+    if (sawFocusedPractice.current) onFocusDone?.();
+  }, [view, extraGroup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sent here by the Today plan to practice a kana row: start that row right away.
   useEffect(() => {

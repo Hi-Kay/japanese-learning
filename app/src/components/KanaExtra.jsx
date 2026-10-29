@@ -135,7 +135,7 @@ export function ExtraGroupList({ script, progress, onOpen }) {
               <span className="text-sm font-medium text-stone-800 truncate">{g.title} <span className="text-stone-400 font-normal text-xs">· {g.subtitle}</span></span>
               <span className={`text-[11px] truncate ${st.dueNow && st.state !== "mastered" ? "text-rose-500 font-medium" : "text-stone-400"}`}>{statusLine(st) ?? `${g.items.length} to learn`}</span>
             </span>
-            {st.state !== "new" && <StatusIcon state={st.state} />}
+            {(st.state === "learned" || st.state === "mastered") && <StatusIcon state={st.state} />}
           </button>
         );
       })}
@@ -155,12 +155,26 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
     const ranked = shuffle(group.items)
       .map((it) => ({ it, st: progress[keyOf(it)] }))
       .sort((a, b) => ((a.st && a.st.due > now) - (b.st && b.st.due > now)) || ((a.st?.box ?? 0) - (b.st?.box ?? 0)));
-    // Easier first: read it (see the mark), then hear it (tell it apart by ear).
-    setItems(ranked.slice(0, SESSION).map(({ it, st }) => {
+    // New items come up twice — read it first (see the mark), then hear it later in the
+    // session (tell it apart by ear) — so one session can make them "learned", just
+    // like a sentence lesson. Items seen before come up once.
+    const first = [];
+    const second = [];
+    let budget = SESSION;
+    for (const { it, st } of ranked) {
       const box = st?.box ?? 0;
-      const type = it.noHear || box === 0 ? "read" : box === 1 ? "hear" : Math.random() < 0.5 ? "read" : "hear";
-      return makeExercise(group, it, type);
-    }));
+      const cost = box === 0 ? 2 : 1;
+      if (cost > budget) continue;
+      budget -= cost;
+      if (box === 0) {
+        first.push(makeExercise(group, it, "read"));
+        second.push(makeExercise(group, it, it.noHear ? "read" : "hear"));
+      } else {
+        first.push(makeExercise(group, it, it.noHear ? "read" : box === 1 ? "hear" : Math.random() < 0.5 ? "read" : "hear"));
+      }
+      if (!budget) break;
+    }
+    setItems([...shuffle(first), ...shuffle(second)]);
     setView("quiz");
   };
 
@@ -189,7 +203,7 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
         <div className="max-w-xs text-sm text-stone-600 bg-white border border-stone-200 rounded-2xl px-4 py-3">
           {st.state === "mastered" ? "You know all of these. Practice now and then so you keep them."
             : st.state === "learned" ? `All ${st.total} learned. Review them ${st.next} — a quick review over the next days is what makes it stick.`
-            : `${st.learned} of ${st.total} learned. ${left === 1 ? "One more needs" : `${left} more need`} practice — ${st.next === "now" ? "keep going now" : `come back ${st.next}`}.`}
+            : `${st.learned} of ${st.total} learned, ${left} more to go — another round now, or next time.`}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-sm mt-2">
           <button onClick={start} className="py-3.5 rounded-2xl bg-rose-500 text-white font-medium">Practice again</button>

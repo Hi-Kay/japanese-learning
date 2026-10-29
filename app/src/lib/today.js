@@ -16,8 +16,9 @@ export function markToday(patch) {
   return next;
 }
 
-// recordResult sets due = answer time + interval, so the answer time can be recovered.
-const answeredAt = (st) => st.due - BOX_INTERVALS[st.box];
+// Newer entries store when they were answered; for older ones it can be recovered,
+// because they were saved as due = answer time + interval.
+const answeredAt = (st) => st.seen ?? st.due - BOX_INTERVALS[st.box];
 const KANA_CHARS = new Set([...HIRAGANA, ...KATAKANA].map(([ch]) => ch));
 const isKanaKey = (key) => key.startsWith("x:") || KANA_CHARS.has(key.split("|")[0]);
 
