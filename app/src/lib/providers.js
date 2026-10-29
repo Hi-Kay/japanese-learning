@@ -34,6 +34,32 @@ async function readJson(res) {
   return res.json().catch(() => ({}));
 }
 
+// Free Mistral keys allow about one request per second, and one tutor answer can
+// take several requests in a row (one per tool step, sent within milliseconds).
+// So Mistral requests are spaced out, and a 429 "too many requests" is retried
+// after a pause before the learner sees an error.
+const MISTRAL_GAP_MS = 1100;
+const MISTRAL_RETRY_WAITS_MS = [2000, 4000, 8000];
+const MISTRAL_RATE_LIMITED =
+  "Mistral is receiving too many requests from this key right now (free keys allow about one per second). Wait a moment and try again — or raise your limit in the Mistral console.";
+let mistralNextSlot = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function mistralFetch(init) {
+  for (let attempt = 0; ; attempt++) {
+    // Reserve the next free slot before waiting, so overlapping calls queue up too.
+    const now = Date.now();
+    const slot = Math.max(now, mistralNextSlot);
+    mistralNextSlot = slot + MISTRAL_GAP_MS;
+    if (slot > now) await sleep(slot - now);
+    const res = await fetch("https://api.mistral.ai/v1/chat/completions", init);
+    if (res.status !== 429 || attempt >= MISTRAL_RETRY_WAITS_MS.length) return res;
+    // Retry-After is in seconds; browsers only expose it if Mistral allows it, so fall back.
+    const after = Number(res.headers.get("retry-after"));
+    await sleep(after > 0 ? after * 1000 : MISTRAL_RETRY_WAITS_MS[attempt]);
+  }
+}
+
 export const PROVIDERS = {
   anthropic: {
     id: "anthropic",
@@ -127,7 +153,7 @@ export const PROVIDERS = {
         else for (const r of m.results) messages.push({ role: "tool", tool_call_id: shortId(r.id), name: r.name, content: r.output });
       }
 
-      const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      const res = await mistralFetch({
         method: "POST",
         // No browser-access opt-in header needed: api.mistral.ai allows direct
         // calls from a web page.
@@ -143,6 +169,7 @@ export const PROVIDERS = {
       const data = await readJson(res);
       if (!res.ok) {
         if (res.status === 401) throw new Error(KEY_REJECTED);
+        if (res.status === 429) throw new Error(MISTRAL_RATE_LIMITED);
         throw new Error(`API error ${res.status}: ${mistralError(data)}`);
       }
       const msg = data.choices?.[0]?.message ?? {};
