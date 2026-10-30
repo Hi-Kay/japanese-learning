@@ -55,7 +55,7 @@ const WORDS = [
   // time & amounts
   ["ashita", "明日[あした]", "ashita", "tomorrow"], ["kinou", "昨日[きのう]", "kinou", "yesterday"],
   ["mainichi", "毎日[まいにち]", "mainichi", "every day"],
-  ["hitotsu", "一[ひと]つ", "hitotsu", "one (thing)"], ["futatsu", "二[ふた]つ", "futatsu", "two (things)"],
+  ["hitotsu", "一[ひと]つ", "hitotsu", "one (thing)"], ["futatsu", "二[ふた]つ", "futatsu", "two (things)"], ["mittsu", "三[みっ]つ", "mittsu", "three (things)"],
   // endings
   ["desu", "です", "desu", "is"], ["janai", "じゃないです", "ja nai desu", "is not"], ["kudasai", "ください", "kudasai", "please give"],
   ["arimasu", "あります", "arimasu", "there is (thing)"], ["arimasen", "ありません", "arimasen", "there isn't"],
@@ -112,7 +112,7 @@ const LESSON_DEFS = [
   {
     id: "kudasai", title: "X を ください", gist: "Ask for things",
     formula: [["O", "X"], ["O", "を"], ["V", "ください"]],
-    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants.",
+    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants. To say how many, put the number right before ください: 一つ (one), 二つ (two), 三つ (three) — this way of counting works for almost any thing you order or buy.",
     sentences: [
       ["mizu:O o:O kudasai:V", "Water, please."],
       ["koohii:O o:O kudasai:V", "Coffee, please."],
@@ -120,6 +120,7 @@ const LESSON_DEFS = [
       ["menyuu:O o:O kudasai:V", "The menu, please."],
       ["biiru:O o:O futatsu:Q kudasai:V", "Two beers, please."],
       ["ocha:O o:O hitotsu:Q kudasai:V", "One tea, please."],
+      ["koohii:O o:O mittsu:Q kudasai:V", "Three coffees, please."],
     ],
   },
   {

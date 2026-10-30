@@ -57,6 +57,7 @@ function makeUtterance(text, rate, { useVoice = true } = {}) {
 }
 
 let lastStart = 0; // when an utterance last actually started playing
+let lastStop = 0;  // when stopSpeaking() last cancelled something
 
 export function speak(text, rate = 0.85) {
   if (!synth) return;
@@ -65,6 +66,7 @@ export function speak(text, rate = 0.85) {
   u.onstart = () => { lastStart = Date.now(); };
   clearTimeout(delayed);
   const busy = synth.speaking || synth.pending;
+  const justStopped = Date.now() - lastStop < 150;
   // "Busy" for a long time without anything having started recently means the engine is stuck.
   const stuck = busy && Date.now() - lastStart > 20000;
   // Safari drops an utterance (or ignores its rate) when it's queued right after
@@ -73,8 +75,20 @@ export function speak(text, rate = 0.85) {
     synth.cancel();
     if (stuck) synth.speak(u); // speak right away, inside the tap, so iOS allows it
     else delayed = setTimeout(() => synth.speak(u), 150);
+  } else if (justStopped) {
+    delayed = setTimeout(() => synth.speak(u), 150); // same Safari bug, after stopSpeaking()
   } else {
     synth.speak(u);
+  }
+}
+
+// Silence whatever is playing, e.g. the last sentence when moving on to the next exercise.
+export function stopSpeaking() {
+  if (!synth) return;
+  clearTimeout(delayed);
+  if (synth.speaking || synth.pending) {
+    synth.cancel();
+    lastStop = Date.now();
   }
 }
 

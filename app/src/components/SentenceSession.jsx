@@ -6,7 +6,7 @@ import SentenceView from "./SentenceView.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import { PARTICLE_NOTES } from "../data/sentences.js";
 import { checkOrder, slowSpeechText, speechText } from "../lib/sentence.js";
-import { shuffle, speak } from "../lib/srs.js";
+import { shuffle, speak, stopSpeaking } from "../lib/srs.js";
 
 const KINDS = {
   listen: { label: "LISTEN", cls: "bg-sky-100 text-sky-700", prompt: "What does this mean?" },
@@ -57,7 +57,8 @@ function ListenExercise({ item, result, onAnswer }) {
 function BuildExercise({ item, result, onAnswer, showRomaji }) {
   const { sentence, shuffled } = item;
   const tokens = sentence.tokens;
-  const [picked, setPicked] = useState([]);
+  const tiles = [...tokens, ...(item.extra ?? [])];
+  const [picked, setPicked] = useState(result?.picked ?? []);
   const dictation = item.type === "dictation";
   useEffect(() => { if (dictation) say(sentence); }, [item.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const check = () => onAnswer({ ...checkOrder(tokens, picked, { strict: dictation }), picked });
@@ -66,17 +67,17 @@ function BuildExercise({ item, result, onAnswer, showRomaji }) {
       {dictation ? <AudioButtons sentence={sentence} /> : <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>}
       <div className="w-full min-h-[4.5rem] flex flex-wrap justify-center content-start gap-2 py-2 border-b-2 border-dashed border-stone-200">
         {picked.map((ti, pi) => (
-          <Tile key={ti} t={tokens[ti]} showRomaji={showRomaji} onClick={result ? undefined : () => setPicked((p) => p.filter((_, j) => j !== pi))} />
+          <Tile key={ti} t={tiles[ti]} showRomaji={showRomaji} onClick={result ? undefined : () => setPicked((p) => p.filter((_, j) => j !== pi))} />
         ))}
       </div>
       {!result && (
         <>
           <div className="flex flex-wrap justify-center gap-2">
             {shuffled.map((ti) => (
-              <Tile key={ti} t={tokens[ti]} showRomaji={showRomaji} hidden={picked.includes(ti)} onClick={() => setPicked((p) => [...p, ti])} />
+              <Tile key={ti} t={tiles[ti]} showRomaji={showRomaji} hidden={picked.includes(ti)} onClick={() => setPicked((p) => [...p, ti])} />
             ))}
           </div>
-          <button disabled={picked.length !== tokens.length} onClick={check} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium disabled:opacity-30 transition">Check</button>
+          <button disabled={!picked.length} onClick={check} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium disabled:opacity-30 transition">Check</button>
         </>
       )}
     </>
@@ -117,7 +118,7 @@ function ParticleExercise({ item, result, onAnswer, showRomaji }) {
   );
 }
 
-function Feedback({ item, result, showRomaji, onContinue, onAsk }) {
+function Feedback({ item, result, showRomaji, onContinue, continueLabel = "Continue", onAsk }) {
   const s = item.sentence;
   const good = result.correct;
   useEffect(() => { say(s); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -140,25 +141,47 @@ function Feedback({ item, result, showRomaji, onContinue, onAsk }) {
           <AudioButtons sentence={s} />
           <span className="text-[11px] text-stone-400">Say it out loud once</span>
         </div>
-        <button onClick={onContinue} className={`w-full py-3.5 rounded-2xl text-white font-medium ${good ? "bg-emerald-500" : "bg-rose-500"}`}>Continue</button>
+        <button onClick={onContinue} className={`w-full py-3.5 rounded-2xl text-white font-medium ${good ? "bg-emerald-500" : "bg-rose-500"}`}>{continueLabel}</button>
       </div>
     </div>
   );
 }
 
+// Back offers three ways out: look at the previous exercise again, read the lesson's
+// explanation, or go home. Leaving keeps your place: onLeave gets the session's state,
+// and passing it back as `saved` continues where you were.
+function BackMenu({ canPeek, hasLesson, onPeek, onLeave, onClose }) {
+  const row = "w-full text-left px-4 py-3 text-sm text-stone-700 active:bg-stone-50";
+  return (
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="absolute left-0 top-8 z-40 w-64 rounded-2xl bg-white border border-stone-200 shadow-lg overflow-hidden divide-y divide-stone-100">
+        {canPeek && <button onClick={onPeek} className={row}>Previous exercise</button>}
+        {hasLesson && <button onClick={() => onLeave("intro")} className={row}>Lesson explanation</button>}
+        <button onClick={() => onLeave("home")} className={row}>Home</button>
+        <div className="px-4 py-2 text-[11px] text-stone-400">Your place is kept — you can continue later.</div>
+      </div>
+    </>
+  );
+}
+
 // Runs a list of exercises. Wrong answers come back once at the end of the
 // session (only the first attempt counts for spaced repetition).
-export default function SentenceSession({ items, showRomaji, tutorApp, onGrade, onExit, onFinish }) {
-  const [queue, setQueue] = useState(items);
-  const [idx, setIdx] = useState(0);
-  const [result, setResult] = useState(null);
-  const [firstTries, setFirstTries] = useState([]);
+export default function SentenceSession({ items, saved, hasLesson, showRomaji, tutorApp, onGrade, onLeave, onFinish }) {
+  const [queue, setQueue] = useState(saved?.queue ?? items);
+  const [idx, setIdx] = useState(saved?.idx ?? 0);
+  const [results, setResults] = useState(saved?.results ?? []); // by position in the queue
+  const [firstTries, setFirstTries] = useState(saved?.firstTries ?? []);
+  const [peek, setPeek] = useState(null); // an earlier exercise, opened again from Back
+  const [menu, setMenu] = useState(false);
   const [asking, setAsking] = useState(false);
-  const item = queue[idx];
+  const shown = peek ?? idx;
+  const item = queue[shown];
+  const result = results[shown] ?? null;
   const kind = KINDS[item.type];
 
   const answer = (r) => {
-    setResult(r);
+    setResults((rs) => { const next = [...rs]; next[idx] = r; return next; });
     if (item.retry) return;
     onGrade(item.sentence, r.correct);
     setFirstTries((f) => [...f, r.correct]);
@@ -171,29 +194,42 @@ export default function SentenceSession({ items, showRomaji, tutorApp, onGrade, 
   };
 
   const next = () => {
+    stopSpeaking();
+    setAsking(false);
+    if (peek != null) { setPeek(null); return; }
     if (idx + 1 >= queue.length) { onFinish(firstTries); return; }
     setIdx(idx + 1);
-    setResult(null);
-    setAsking(false);
+  };
+
+  const peekBack = () => { stopSpeaking(); setMenu(false); setAsking(false); setPeek(shown - 1); };
+
+  const leave = (where) => {
+    stopSpeaking();
+    const resumeAt = results[idx] ? idx + 1 : idx;
+    if (resumeAt >= queue.length) { onFinish(firstTries); return; }
+    onLeave(where, resumeAt > 0 ? { queue, idx: resumeAt, results, firstTries } : null);
   };
 
   const props = { item, result, onAnswer: answer, showRomaji };
   return (
     <div className={`flex flex-col items-center gap-5 ${result ? "pb-72" : ""}`}>
       <div className="w-full flex items-center justify-between gap-3 max-w-sm">
-        <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1 shrink-0"><Icon name="back" size={16} /> Back</button>
+        <div className="relative shrink-0">
+          <button onClick={() => setMenu(!menu)} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
+          {menu && <BackMenu canPeek={shown > 0} hasLesson={hasLesson} onPeek={peekBack} onLeave={leave} onClose={() => setMenu(false)} />}
+        </div>
         <SessionProgress current={idx} total={queue.length} />
       </div>
       <div className="flex flex-col items-center gap-1.5">
         <span className={`text-[10px] font-semibold tracking-widest px-2.5 py-1 rounded-full ${kind.cls}`}>{kind.label}</span>
-        <span className="text-sm text-stone-500">{item.retry ? "One more try" : kind.prompt}</span>
+        <span className="text-sm text-stone-500">{peek != null ? "Looking back" : item.retry ? "One more try" : kind.prompt}</span>
       </div>
       <div key={item.key} className="w-full max-w-sm flex flex-col items-center gap-5">
         {item.type === "listen" && <ListenExercise {...props} />}
         {(item.type === "build" || item.type === "dictation") && <BuildExercise {...props} />}
         {item.type === "particle" && <ParticleExercise {...props} />}
       </div>
-      {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} onAsk={() => setAsking(true)} />}
+      {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} continueLabel={peek != null ? "Back to where I was" : "Continue"} onAsk={() => setAsking(true)} />}
       {result && asking && <AskTutor item={item} result={result} app={tutorApp} showRomaji={showRomaji} onClose={() => setAsking(false)} />}
     </div>
   );

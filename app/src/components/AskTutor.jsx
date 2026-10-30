@@ -14,9 +14,9 @@ import { tutorAccess } from "../lib/tutorStore.js";
 
 const KIND_NAMES = {
   listen: "Listen and pick the meaning",
-  build: "Build the Japanese sentence from word tiles, given the English",
+  build: "Build the Japanese sentence from word tiles, given the English (two extra tiles don't belong in it)",
   particle: "Fill in the missing particle",
-  dictation: "Listen and build the sentence from word tiles",
+  dictation: "Listen and build the sentence from word tiles (two extra tiles don't belong in it)",
 };
 
 const tokenText = (t) => t.jp + (t.comma ? "、" : "");
@@ -25,7 +25,8 @@ const tokenText = (t) => t.jp + (t.comma ? "、" : "");
 function yourAnswer(item, result) {
   if (item.type === "listen") return result.picked;
   if (item.type === "particle") return item.options.find((p) => p.id === result.picked)?.jp ?? result.picked;
-  return result.picked.map((i) => surface(item.sentence.tokens[i].jp)).join(" ");
+  const tiles = [...item.sentence.tokens, ...(item.extra ?? [])];
+  return result.picked.map((i) => surface(tiles[i].jp)).join(" ");
 }
 
 function learnerAnswer(item, result) {

@@ -18,7 +18,7 @@ The app has five tabs:
 
 | Tab | Content |
 | --- | --- |
-| **Sentences** | 12 lessons, one core sentence pattern each (69 sentences, ~70 useful words) |
+| **Sentences** | 12 lessons, one core sentence pattern each (70 sentences, ~70 useful words) |
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
@@ -36,7 +36,12 @@ Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 
 The Sentences tab opens with a **Today plan** — about 10 minutes: review what's due,
 one new lesson (or finish the current one), and one small kana step, then "Done for
-today". Everything else is optional.
+today". One button runs the parts in order; after each part its summary shows the score
+and offers the next one. Everything else is optional.
+
+During an exercise, **Back** offers the previous exercise, the lesson's explanation, or
+home — your place is kept, so you can continue where you left off. After each answer,
+**Ask why** opens a short chat with the AI tutor about that sentence (needs a tutor key).
 
 The Sentences section is built on a few well-supported principles:
 
@@ -51,6 +56,7 @@ The Sentences section is built on a few well-supported principles:
   example sentences with audio — before any exercise.
 - **Recognize before you produce.** Exercises get harder as a sentence settles in:
   *listen and pick the meaning* → *pick the missing particle* → *build it from tiles*
+  (with two extra tiles that don't belong)
   → *build it from audio alone* (a form of dictation, which trains hearing individual
   words).
 - **Retrieval + spacing.** Every answer is checked automatically and feeds the same

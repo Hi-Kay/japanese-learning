@@ -28,7 +28,7 @@ export const shuffle = (arr) => {
   return a;
 };
 
-export { speak } from "./speech.js";
+export { speak, stopSpeaking } from "./speech.js";
 
 // Local-day string (YYYY-MM-DD) used for streak tracking, independent of timezone shifts mid-session.
 export const todayKey = (d = new Date()) => {

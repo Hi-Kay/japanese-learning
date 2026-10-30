@@ -62,13 +62,14 @@ export function slowSpeechText(tokens) {
   return [...phrases, tail].filter((g) => g.length).map((g) => g.map((i) => spoken(tokens[i])).join("").replace(/、$/, "")).join("、") + "。";
 }
 
-// Is `order` (token indices, in the learner's order) a correct sentence?
+// Is `order` (token indices, in the learner's order) a correct sentence? Indices past
+// the end are extra tiles that don't belong in the sentence.
 // Phrases before the ending may come in any order, as long as each stays intact
 // and the ending stays last — that's how Japanese word order works.
 export function checkOrder(tokens, order, { strict = false } = {}) {
   const exact = order.every((idx, i) => idx === i) && order.length === tokens.length;
   if (exact) return { correct: true, exact: true };
-  if (strict || order.length !== tokens.length) return { correct: false };
+  if (strict || order.length !== tokens.length || order.some((i) => i >= tokens.length)) return { correct: false };
   const { phrases, tail } = structure(tokens);
   const tailPart = order.slice(order.length - tail.length);
   if (!tail.every((idx, i) => tailPart[i] === idx)) return { correct: false };
