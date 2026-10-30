@@ -4,3 +4,4 @@ dist
 *.log
 agent/vocab.json
 .env
+CLAUDE.md
