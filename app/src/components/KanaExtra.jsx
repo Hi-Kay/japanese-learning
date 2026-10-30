@@ -69,7 +69,7 @@ function Quiz({ group, items, showRomaji, onGrade, onExit, onFinish }) {
   const contrast = contrastOf(group, it);
   return (
     <div className={`flex flex-col items-center gap-5 ${picked ? "pb-72" : ""}`}>
-      <div className="w-full flex items-center justify-between gap-3 max-w-sm">
+      <div className="sticky top-0 z-20 -my-2 py-2 bg-stone-50 w-full flex items-center justify-between gap-3 max-w-sm">
         <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1 shrink-0"><Icon name="back" size={16} /> Back</button>
         <SessionProgress current={idx} total={queue.length} />
       </div>
@@ -224,7 +224,7 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
   };
   return (
     <div className="flex flex-col gap-5 pb-24">
-      <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-20 -my-2 py-2 bg-stone-50 -mx-4 px-4 flex items-center justify-between">
         <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
         <TextSizeButton compact />
       </div>

@@ -213,7 +213,7 @@ export default function SentenceSession({ items, saved, hasLesson, showRomaji, t
   const props = { item, result, onAnswer: answer, showRomaji };
   return (
     <div className={`flex flex-col items-center gap-5 ${result ? "pb-72" : ""}`}>
-      <div className="w-full flex items-center justify-between gap-3 max-w-sm">
+      <div className="sticky top-0 z-20 w-full max-w-sm -my-2 py-2 bg-stone-50 flex items-center justify-between gap-3">
         <div className="relative shrink-0">
           <button onClick={() => setMenu(!menu)} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           {menu && <BackMenu canPeek={shown > 0} hasLesson={hasLesson} onPeek={peekBack} onLeave={leave} onClose={() => setMenu(false)} />}

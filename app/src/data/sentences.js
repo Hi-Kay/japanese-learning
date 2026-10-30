@@ -83,7 +83,7 @@ export const LEXICON = Object.fromEntries(
 // header; `note` is the whole explanation — kept to a few lines on purpose.
 const LESSON_DEFS = [
   {
-    id: "desu", title: "X is Y", gist: "Say what something is",
+    id: "desu", title: "Say what something is — です", gist: "e.g. “This is water.”",
     formula: [["T", "X"], ["T", "は"], ["V", "Y"], ["V", "です"]],
     note: "は (read “wa”) marks the topic — what you're talking about. です at the end means “is / am / are”. It never changes: same for I, you, he, she, it.",
     sentences: [
@@ -96,7 +96,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "questions", title: "Questions & “not”", gist: "Ask, and say no",
+    id: "questions", title: "Ask and answer — か · じゃない", gist: "e.g. “Is this tea? — No, it isn't.”",
     formula: [["T", "X"], ["T", "は"], ["V", "Y"], ["V", "です"], ["Q", "か"]],
     note: "Add か to the end and it's a question — nothing else moves. For “is not”, swap です for じゃないです.",
     sentences: [
@@ -110,9 +110,20 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "kudasai", title: "X を ください", gist: "Ask for things",
+    id: "kudasai", title: "Ask for things — ください", gist: "e.g. “Two beers, please.”",
     formula: [["O", "X"], ["O", "を"], ["V", "ください"]],
-    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants. To say how many, put the number right before ください: 一つ (one), 二つ (two), 三つ (three) — this way of counting works for almost any thing you order or buy.",
+    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants. To say how many, put the number right before ください — see “How many” below.",
+    // Shown as an extra box on the lesson page; the numbers can be tapped to hear them.
+    box: {
+      title: "How many — counting things",
+      items: [["一[ひと]つ", "hitotsu", "1"], ["二[ふた]つ", "futatsu", "2"], ["三[みっ]つ", "mittsu", "3"], ["四[よっ]つ", "yottsu", "4"], ["五[いつ]つ", "itsutsu", "5"]],
+      notes: [
+        "These are Japanese's own numbers, made for counting things. The つ form works for almost anything you order or buy — coffee, beer, cake, tickets — so you don't have to think about what the thing is. They go up to 10 (十[とお]).",
+        "いち、に、さん are the other set of numbers. They're for prices, the time and phone numbers, and they go with special counting words — for example 本[ほん] for bottles: ビール二本[にほん]. You'll meet those later; for things, 〜つ is always understood and polite.",
+        "People are counted differently: 一人[ひとり] (one person), 二人[ふたり] (two people). At a restaurant: 二人[ふたり]です — “a table for two”.",
+        "The number comes after を, right before ください: コーヒーを二[ふた]つください.",
+      ],
+    },
     sentences: [
       ["mizu:O o:O kudasai:V", "Water, please."],
       ["koohii:O o:O kudasai:V", "Coffee, please."],
@@ -124,7 +135,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "verbs", title: "X を do", gist: "Say what you do",
+    id: "verbs", title: "Say what you do — ます", gist: "e.g. “I drink coffee.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ます"]],
     note: "The verb always comes last. ます is the polite ending — use it with everyone. You don't need to say “I”; it's understood.",
     sentences: [
@@ -137,7 +148,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "full", title: "Who does what", gist: "Topic + object + verb",
+    id: "full", title: "Say who does what — は · を", gist: "e.g. “I study Japanese every day.”",
     formula: [["T", "X"], ["T", "は"], ["O", "Y"], ["O", "を"], ["V", "verb"]],
     note: "Put the blocks together: topic は, object を, verb last. A time word like 毎日 (every day) needs no particle.",
     sentences: [
@@ -149,7 +160,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "masen", title: "Don't — ません", gist: "Say what you don't do",
+    id: "masen", title: "Say what you don't do — ません", gist: "e.g. “I don't eat meat.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ません"]],
     note: "For “don't”, change ます to ません. Everything else stays the same. Great for food: 肉を食べません — I don't eat meat.",
     sentences: [
@@ -162,7 +173,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "ni", title: "Going — に", gist: "Say where you go",
+    id: "ni", title: "Say where you go — に", gist: "e.g. “I'm going to Tokyo.”",
     formula: [["L", "place"], ["L", "に"], ["V", "行きます"]],
     note: "に marks the destination: “to”. 帰ります means going back — home, or to your own country.",
     sentences: [
@@ -175,7 +186,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "de", title: "Where it happens — で", gist: "Say where you do things",
+    id: "de", title: "Say where you do it — で", gist: "e.g. “I eat at a restaurant.”",
     formula: [["L", "place"], ["L", "で"], ["O", "X"], ["O", "を"], ["V", "verb"]],
     note: "で marks where an action happens: “at / in”. Compare 駅に行きます (go TO the station) with 駅で飲みます (drink AT the station).",
     sentences: [
@@ -188,7 +199,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "arimasu", title: "There is — あります", gist: "Say what there is / what you have",
+    id: "arimasu", title: "Say what there is — あります", gist: "e.g. “Do you have water?”",
     formula: [["S", "X"], ["S", "が"], ["V", "あります"]],
     note: "あります = there is / I have (things). います is for people and animals. が marks the thing that exists. Where it is takes に.",
     sentences: [
@@ -201,7 +212,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "suki", title: "Likes — が好きです", gist: "Say what you like",
+    id: "suki", title: "Say what you like — 好きです", gist: "e.g. “I like sushi.”",
     formula: [["T", "X"], ["T", "は"], ["S", "Y"], ["S", "が"], ["V", "好きです"]],
     note: "What you like takes が, not を. 好きです literally means “is liked”. Not liked: 好きじゃないです.",
     sentences: [
@@ -213,7 +224,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "tai", title: "Want to — たいです", gist: "Say what you want to do",
+    id: "tai", title: "Say what you want to do — たいです", gist: "e.g. “I want to go to Japan.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-たい"], ["V", "です"]],
     note: "Swap ます for たいです to say “want to”: 行きます → 行きたいです.",
     sentences: [
@@ -225,7 +236,7 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "mashita", title: "The past — ました", gist: "Say what you did",
+    id: "mashita", title: "Say what you did — ました", gist: "e.g. “Yesterday I ate sushi.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ました"]],
     note: "Swap ます for ました for the past: 行きます → 行きました. Add か to ask: 飲みましたか — did you drink?",
     sentences: [

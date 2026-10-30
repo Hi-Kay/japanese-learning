@@ -5,7 +5,7 @@ import SentenceView from "./SentenceView.jsx";
 import SentenceSession from "./SentenceSession.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
-import { speechText, surface } from "../lib/sentence.js";
+import { parseFurigana, speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
 import { countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
 import StatusIcon from "./StatusIcon.jsx";
@@ -13,6 +13,8 @@ import TodayPlan from "./TodayPlan.jsx";
 import { kanaPracticedToday, markToday, nextKanaStep, readToday } from "../lib/today.js";
 
 const keyOf = (s) => `s:${s.id}`;
+// Spoken from the kana: the voice misreads some counting words (一人, 十) on their own.
+const readingOf = (jp) => parseFurigana(jp).map((x) => x.rt ?? x.text).join("");
 const REVIEW_SIZE = 12;
 
 const PARTICLE_CHARS = new Set(["は", "が", "を", "に", "で", "か"]);
@@ -278,6 +280,20 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
             ))}
           </div>
         </div>
+        {l.box && (
+          <div className="flex flex-col gap-2.5 p-4 rounded-2xl bg-white border border-stone-200">
+            <div className="text-sm font-semibold text-stone-800">{l.box.title}</div>
+            <div className="flex flex-wrap gap-1.5">
+              {l.box.items.map(([jp, ro, en]) => (
+                <button key={ro} onClick={() => speak(readingOf(jp))} className="px-2.5 py-1 rounded-xl bg-stone-50 border border-stone-200 flex flex-col items-center leading-tight">
+                  <span className="text-lg text-stone-800"><Ruby jp={jp} /></span>
+                  <span className="text-[10px] text-stone-400">{showRomaji ? `${ro} · ` : ""}{en}</span>
+                </button>
+              ))}
+            </div>
+            {l.box.notes.map((n) => <p key={n} className="text-sm text-stone-600 leading-relaxed"><Ruby jp={n} /></p>)}
+          </div>
+        )}
         {words.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="text-xs font-medium text-stone-500">New words · tap to hear</div>

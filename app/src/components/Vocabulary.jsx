@@ -208,7 +208,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
     const goNext = () => { setLearnFlipped(false); setLearnIdx((learnIdx + 1) % source.length); };
     return (
       <div className="flex flex-col items-center gap-5">
-        <div className="w-full flex items-center justify-between max-w-sm">
+        <div className="sticky top-0 z-20 -my-2 py-2 bg-stone-50 w-full flex items-center justify-between max-w-sm">
           <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
           <span className="text-xs text-stone-400">{learnIdx + 1} of {source.length}</span>
           <TextSizeButton compact />
@@ -251,7 +251,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
     const it = deck[rIdx];
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="w-full flex items-center justify-between gap-3 max-w-sm">
+        <div className="sticky top-0 z-20 -my-2 py-2 bg-stone-50 w-full flex items-center justify-between gap-3 max-w-sm">
           <button onClick={() => setView("home")} className="text-stone-400 text-sm flex items-center gap-1 shrink-0"><Icon name="back" size={16} /> Back</button>
           <SessionProgress current={rIdx} total={deck.length} />
         </div>
