@@ -118,7 +118,7 @@ export default function App() {
             {voiceOpen && <VoicePicker onClose={() => setVoiceOpen(false)} />}
           </header>
         )}
-        {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} onImmersive={setImmersive} onGoKana={goKana} />}
+        {tab === "sentences" && <Sentences progress={progress} recordResult={recordResult} showRomaji={showRomaji} tutorApp={{ getCards: () => cards, getProgress: () => progress, addCards }} onImmersive={setImmersive} onGoKana={goKana} />}
         {tab === "kana" && <Study focus={kanaFocus} onFocusDone={() => { setKanaFocus(null); setTab("sentences"); }} setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "tutor" && <Tutor cards={cards} progress={progress} addCards={addCards} />}

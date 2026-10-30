@@ -157,7 +157,7 @@ const LESSON_DEFS = [
       ["terebi:O o:O mimasen:V", "I don't watch TV."],
       ["tanaka:T wa:T koohii:O o:O nomimasen:V", "Tanaka-san doesn't drink coffee."],
       ["koohii:O o:O nomimasu:V ka:V", "Do you drink coffee?"],
-      ["iie:Q, nomimasen:V", "No, I don't."],
+      ["iie:Q, nomimasen:V", "No, I don't drink (it)."],
     ],
   },
   {

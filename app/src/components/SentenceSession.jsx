@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AskTutor from "./AskTutor.jsx";
 import Icon from "./Icon.jsx";
 import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
@@ -116,16 +117,21 @@ function ParticleExercise({ item, result, onAnswer, showRomaji }) {
   );
 }
 
-function Feedback({ item, result, showRomaji, onContinue }) {
+function Feedback({ item, result, showRomaji, onContinue, onAsk }) {
   const s = item.sentence;
   const good = result.correct;
   useEffect(() => { say(s); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className={`fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border-t-2 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] ${good ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"}`}>
       <div className="max-w-lg mx-auto px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5">
-        <div className={`font-semibold flex items-center gap-2 ${good ? "text-emerald-700" : "text-rose-600"}`}>
-          <Icon name={good ? "check" : "x"} size={20} />
-          {good ? (result.exact === false ? "Correct — your order works too!" : "Correct!") : "Not quite — here's how it goes:"}
+        <div className="flex items-center justify-between gap-2">
+          <div className={`font-semibold flex items-center gap-2 ${good ? "text-emerald-700" : "text-rose-600"}`}>
+            <Icon name={good ? "check" : "x"} size={20} className="shrink-0" />
+            {good ? (result.exact === false ? "Correct — your order works too!" : "Correct!") : "Not quite — here's how it goes:"}
+          </div>
+          <button onClick={onAsk} className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-medium text-stone-600 active:scale-95 transition">
+            <Icon name="spark" size={13} className="text-rose-500" /> Ask why
+          </button>
         </div>
         <SentenceView tokens={s.tokens} showRomaji={showRomaji} />
         <div className="text-center text-sm text-stone-600">{s.en}</div>
@@ -142,11 +148,12 @@ function Feedback({ item, result, showRomaji, onContinue }) {
 
 // Runs a list of exercises. Wrong answers come back once at the end of the
 // session (only the first attempt counts for spaced repetition).
-export default function SentenceSession({ items, showRomaji, onGrade, onExit, onFinish }) {
+export default function SentenceSession({ items, showRomaji, tutorApp, onGrade, onExit, onFinish }) {
   const [queue, setQueue] = useState(items);
   const [idx, setIdx] = useState(0);
   const [result, setResult] = useState(null);
   const [firstTries, setFirstTries] = useState([]);
+  const [asking, setAsking] = useState(false);
   const item = queue[idx];
   const kind = KINDS[item.type];
 
@@ -167,6 +174,7 @@ export default function SentenceSession({ items, showRomaji, onGrade, onExit, on
     if (idx + 1 >= queue.length) { onFinish(firstTries); return; }
     setIdx(idx + 1);
     setResult(null);
+    setAsking(false);
   };
 
   const props = { item, result, onAnswer: answer, showRomaji };
@@ -185,7 +193,8 @@ export default function SentenceSession({ items, showRomaji, onGrade, onExit, on
         {(item.type === "build" || item.type === "dictation") && <BuildExercise {...props} />}
         {item.type === "particle" && <ParticleExercise {...props} />}
       </div>
-      {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} />}
+      {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} onAsk={() => setAsking(true)} />}
+      {result && asking && <AskTutor item={item} result={result} app={tutorApp} showRomaji={showRomaji} onClose={() => setAsking(false)} />}
     </div>
   );
 }

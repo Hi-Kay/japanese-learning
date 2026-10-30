@@ -25,7 +25,7 @@ function shuffleApart(order) {
   return s;
 }
 
-export default function Sentences({ progress, recordResult, showRomaji, onImmersive, onGoKana }) {
+export default function Sentences({ progress, recordResult, showRomaji, tutorApp, onImmersive, onGoKana }) {
   const [view, setView] = useState("home"); // home | intro | session | summary
   const [lessonIdx, setLessonIdx] = useState(null);
   const [items, setItems] = useState([]);
@@ -92,8 +92,10 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
   const nextReviewText = () => {
     const upcoming = ALL_SENTENCES.filter(started).map((x) => progress[keyOf(x)].due);
     if (!upcoming.length) return "";
-    const when = whenText(Math.min(...upcoming));
-    return when === "now" ? "Some sentences are ready again — review once more to lock them in." : `All caught up. Next review ${when}.`;
+    // Missed sentences are due again within minutes, but the plan has one review a day.
+    const next = Math.min(...upcoming);
+    const tomorrow = new Date().setHours(24, 0, 0, 0);
+    return next < tomorrow ? "That's the review for today. The sentences you missed come back in tomorrow's review." : `All caught up. Next review ${whenText(next)}.`;
   };
 
   const grade = (s, got) => {
@@ -107,6 +109,7 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
         key={items[0].key}
         items={items}
         showRomaji={showRomaji}
+        tutorApp={tutorApp}
         onGrade={grade}
         onExit={() => setView(lessonIdx != null ? "intro" : "home")}
         onFinish={(firstTries) => {
@@ -225,11 +228,13 @@ export default function Sentences({ progress, recordResult, showRomaji, onImmers
 
     const steps = [];
     // The review step shows what is actually open right now. Sentences of the lesson
-    // in the lesson step are left out, so nothing is counted twice.
+    // in the lesson step are left out, so nothing is counted twice. One review a day
+    // is the plan: mistakes come back a minute later and anything over REVIEW_SIZE
+    // stays due, but those wait for tomorrow's review instead of reopening this step.
     if (anyStarted) {
       const open = due.filter((x) => x.lesson !== planLesson);
       const n = Math.min(open.length, REVIEW_SIZE);
-      steps.push(n
+      steps.push(n && !today.reviewed
         ? { title: "Review", detail: `${n} ${n === 1 ? "sentence" : "sentences"} · about ${Math.max(1, Math.round(n / 3))} min`, action: "Start", onClick: () => startReview(open) }
         : { title: "Review", detail: today.reviewed ? "Done for today" : "Nothing due right now", done: true });
     }

@@ -8,6 +8,7 @@
 
 import { storage } from "./storage.js";
 import { BOX_INTERVALS, todayKey } from "./srs.js";
+import { DEFAULT_PROVIDER } from "./providers.js";
 
 // ---------- Speaking progress ----------
 
@@ -59,4 +60,39 @@ export function setMemory(notes) {
     .slice(0, MAX_NOTES);
   storage.setJSON("tutorMemory", clean);
   return clean;
+}
+
+// ---------- API keys ----------
+
+export const KEYS_STORE = "tutorApiKeys";      // { anthropic, mistral } — one key per provider
+const LEGACY_KEY_STORE = "tutorApiKey"; // before the app supported Mistral: one Anthropic key
+export const PROVIDER_STORE = "tutorProvider";
+const LEGACY_CHAT_STORE = "tutorChat";
+
+// Keys used to live in a single string, from when Claude was the only option.
+// Move that one into the per-provider store the first time, then forget it.
+export function loadKeys() {
+  const saved = storage.getJSON(KEYS_STORE, null);
+  if (saved) return saved;
+  const legacy = storage.get(LEGACY_KEY_STORE) || "";
+  const keys = legacy ? { anthropic: legacy } : {};
+  if (legacy) {
+    storage.setJSON(KEYS_STORE, keys);
+    storage.set(LEGACY_KEY_STORE, "");
+  }
+  // The old chat history used Anthropic's own message shape, which this version
+  // no longer understands, so it is dropped rather than migrated.
+  storage.set(LEGACY_CHAT_STORE, "");
+  return keys;
+}
+
+export const currentProvider = () => storage.get(PROVIDER_STORE) || DEFAULT_PROVIDER;
+
+// The provider and key to use outside the Tutor tab: the chosen provider if it has a
+// key, otherwise any provider that has one. Null when no key is set up.
+export function tutorAccess() {
+  const keys = loadKeys();
+  const chosen = currentProvider();
+  const provider = keys[chosen] ? chosen : Object.keys(keys).find((p) => keys[p]);
+  return provider ? { provider, apiKey: keys[provider] } : null;
 }
