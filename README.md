@@ -22,7 +22,7 @@ The app has five tabs:
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
-| **Tutor** | An AI tutor (Claude) you can write or speak to — see [AI Tutor](#ai-tutor) |
+| **Tutor** | An AI tutor (Claude or Mistral, with your own key) you can write or speak to — see [AI Tutor](#ai-tutor) |
 
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
 Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
@@ -33,6 +33,10 @@ Vocabulary categories: Greetings & Basics, Numbers, Days & Time, Survival Phrase
 Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 
 ## The learning method
+
+The Sentences tab opens with a **Today plan** — about 10 minutes: review what's due,
+one new lesson (or finish the current one), and one small kana step, then "Done for
+today". Everything else is optional.
 
 The Sentences section is built on a few well-supported principles:
 
@@ -77,9 +81,10 @@ The Sentences section is built on a few well-supported principles:
   or the long vowel changes the meaning — which you can tap to hear side by side.
 - **Small chunks.** Kana are grouped by gojūon row, kanji into stages of 20, each
   with its own *Practice* button and progress count.
-- **Spaced repetition.** A Leitner box system schedules each item: correct answers
-  move it to a longer interval (1 min → 10 min → 1 day → 3 days → 10 days), a miss
-  sends it back. An item counts as *known* at box 3. Sessions are capped at 20 cards.
+- **Spaced repetition.** A Leitner box system schedules each item: a miss comes back
+  after a minute; once an item is *learned* (answered correctly in practice), reviews
+  follow a daily rhythm — tomorrow, in 3 days (*mastered*), 10 days, a month — and are
+  due from the start of that day, so one review a day clears them.
 - **Writing practice.** The stroke-order animation plays inside the practice box and
   you trace on top of it; write-from-memory cards let you draw blind, then reveal the
   real character over your strokes to compare.
