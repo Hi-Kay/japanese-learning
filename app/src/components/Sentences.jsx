@@ -7,7 +7,7 @@ import TextSizeButton from "./TextSizeButton.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
 import { parseFurigana, speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
-import { countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
+import { LEARNED, countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
 import StatusIcon from "./StatusIcon.jsx";
 import TodayPlan from "./TodayPlan.jsx";
 import { kanaPracticedToday, markToday, nextKanaStep, readToday } from "../lib/today.js";
@@ -51,6 +51,13 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
   const statusOf = (l) => progressStatus(l.sentences, keyOf, progress);
   const lessonLearned = (l) => ["learned", "mastered"].includes(statusOf(l).state);
   const upNext = LESSONS.find((l) => !lessonLearned(l)) ?? LESSONS.at(-1);
+  // The Today plan moves on to a new lesson once every sentence of the last one has
+  // been met. An older sentence that slips (a mistake in a review) is picked up by the
+  // review, instead of pulling the whole earlier lesson back into the lesson step.
+  const lessonMet = (l) => l.sentences.every(started);
+  const planNext = LESSONS.find((l) => !lessonMet(l));
+  const startOfDay = new Date().setHours(0, 0, 0, 0);
+  const practicedToday = (s) => (progress[keyOf(s)]?.seen ?? 0) >= startOfDay;
   const now = Date.now();
   const due = ALL_SENTENCES.filter((s) => started(s) && progress[keyOf(s)].due <= now)
     .sort((a, b) => progress[keyOf(a)].due - progress[keyOf(b)].due);
@@ -101,7 +108,12 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
     setSaved(null);
     const particles = particlesKnownBy(Math.max(l.index, frontier));
     const fresh = l.sentences.filter((s) => !started(s));
-    const seen = l.sentences.filter(started);
+    // Sentences met before: only the ones still being learned or due again, so
+    // continuing a lesson doesn't repeat what is already known. "Practice again" on a
+    // learned lesson (nothing left to learn) goes through all of it.
+    const met = l.sentences.filter(started);
+    const open = met.filter((s) => boxOf(s) < LEARNED || progress[keyOf(s)].due <= Date.now());
+    const seen = fresh.length || open.length ? open : met;
     // Only this lesson's sentences, so the session stays on one pattern; reviews of
     // other lessons have their own step in the Today plan.
     // New sentences are met twice: first by ear, then built — receptive before productive.
@@ -154,12 +166,14 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
     const lessonToday = today.lesson != null ? LESSONS[today.lesson] : null;
     let lessonStep;
     let planLesson = null;
-    if (lessonToday && lessonLearned(lessonToday)) {
-      lessonStep = { id: "lesson", title: `Lesson ${lessonToday.index + 1} learned`, detail: "One new lesson a day is plenty", done: true };
-    } else if (!lessonToday && LESSONS.every(lessonLearned)) {
-      lessonStep = { id: "lesson", title: "All lessons learned", detail: "Keep up the reviews to master them", done: true };
+    // Done once a lesson session was finished today; sentences missed in it come back
+    // in the next review rather than keeping this step open.
+    if (lessonToday) {
+      lessonStep = { id: "lesson", title: `Lesson ${lessonToday.index + 1} ${lessonLearned(lessonToday) ? "learned" : "practiced"}`, detail: "One lesson a day is plenty", done: true };
+    } else if (!planNext) {
+      lessonStep = { id: "lesson", title: "All lessons done", detail: "Reviews keep them fresh", done: true };
     } else {
-      const l = lessonToday ?? upNext;
+      const l = planNext;
       const st = statusOf(l);
       planLesson = l.index;
       const place = pausedFor(l.index);
@@ -172,11 +186,12 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
 
     const steps = [];
     // The review step shows what is actually open right now. Sentences of the lesson
-    // in the lesson step are left out, so nothing is counted twice. One review a day
+    // in the lesson step, and sentences already practiced today (in a lesson or a
+    // review), are left out, so nothing is done twice in one day. One review a day
     // is the plan: mistakes come back a minute later and anything over REVIEW_SIZE
     // stays due, but those wait for tomorrow's review instead of reopening this step.
     if (anyStarted) {
-      const open = due.filter((x) => x.lesson !== planLesson);
+      const open = due.filter((x) => x.lesson !== planLesson && !practicedToday(x));
       const n = Math.min(open.length, REVIEW_SIZE);
       const place = pausedFor(null);
       steps.push(place
