@@ -40,7 +40,9 @@ Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 
 The app opens with the **Today plan** — about 10 minutes: review what's due,
 one new lesson (or finish the current one), and one small kana step, then "Done for
-today". One button runs the parts in order; after each part its summary shows the score
+today". On a day with more time, **Do another round** then suggests one more step at a
+time — open reviews first, then one more lesson, then one more kana step — and says so
+when more wouldn't help. One button runs the parts in order; after each part its summary shows the score
 and offers the next one. Everything else is optional.
 
 During an exercise, **Back** offers the previous exercise, the lesson's explanation, or

@@ -211,6 +211,31 @@ export default function Sentences({ section = "today", progress, recordResult, s
     }
     return steps;
   }
+
+  // After the plan is done: one more step for a day with more time, chosen by the app.
+  // Open reviews first (that's what makes things stick), then one more lesson, then one
+  // more kana step. At most one extra lesson and one extra kana step a day — more new
+  // material than that mostly comes back as a pile of reviews. Null: nothing useful left.
+  function extraStep() {
+    if (paused) {
+      const l = paused.lessonIdx != null ? LESSONS[paused.lessonIdx] : null;
+      return { title: l ? `Continue: ${l.title}` : "Continue the review", detail: placeText(paused.state), onClick: resume };
+    }
+    if (due.length) {
+      const n = Math.min(due.length, REVIEW_SIZE);
+      return { title: `Review: ${n} open ${n === 1 ? "sentence" : "sentences"}`, detail: `${n} ${n === 1 ? "sentence" : "sentences"} · about ${Math.max(1, Math.round(n / 3))} min`, onClick: () => startReview(due) };
+    }
+    if (planNext && today.lesson != null && today.extraLesson == null) {
+      const l = planNext;
+      const isNew = statusOf(l).state === "new";
+      return { title: `${isNew ? "New lesson" : "Finish"}: ${l.title}`, detail: `Lesson ${l.index + 1} · about 6 min`, onClick: () => (isNew ? (setLessonIdx(l.index), setView("intro")) : startLesson(l)) };
+    }
+    const kana = nextKanaStep(progress);
+    if (kana && !today.extraKana) {
+      return { title: `Kana: ${kana.title}`, detail: `${kana.sample} · about 3 min`, onClick: () => { setToday(markToday({ extraKana: true })); onGoKana?.(kana); } };
+    }
+    return null;
+  }
   // ----- SESSION -----
   if (view === "session" && items.length) {
     return (
@@ -230,7 +255,11 @@ export default function Sentences({ section = "today", progress, recordResult, s
           paused = null;
           setJustDid(lessonIdx != null ? "lesson" : "review");
           setSummary({ right: firstTries.filter(Boolean).length, total: firstTries.length });
-          setToday(markToday(lessonIdx != null ? { lesson: lessonIdx } : { reviewed: true }));
+          // The day's first finished lesson is the plan's lesson; a later one after that
+          // is the extra lesson. Practicing an older lesson again changes neither.
+          setToday(markToday(lessonIdx == null ? { reviewed: true }
+            : today.lesson == null ? { lesson: lessonIdx }
+            : lessonIdx > today.lesson ? { extraLesson: lessonIdx } : {}));
           setView("summary");
         }}
       />
@@ -351,7 +380,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
 
   return (
     <div className="flex flex-col gap-4">
-      {section === "today" && <TodayPlan steps={todaySteps()} onStart={(step) => { setDayRun(true); step.onClick(); }} />}
+      {section === "today" && <TodayPlan steps={todaySteps()} extra={extraStep()} onStart={(step) => { setDayRun(true); step.onClick(); }} />}
       {section === "lessons" && <div className="flex flex-col gap-1.5">
         {LESSONS.map((l) => {
           const st = statusOf(l);

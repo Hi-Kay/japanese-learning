@@ -2,7 +2,9 @@ import Icon from "./Icon.jsx";
 
 // Today's short to-do list: up to three parts, done one after another with a single
 // button. After each part, its summary offers the next one.
-export default function TodayPlan({ steps, onStart }) {
+// Once everything is done, `extra` is one more step for a day with more time (or null
+// when more wouldn't help today).
+export default function TodayPlan({ steps, extra, onStart }) {
   const current = steps.find((s) => !s.done);
   const anyDone = steps.some((s) => s.done);
   return (
@@ -27,9 +29,19 @@ export default function TodayPlan({ steps, onStart }) {
           {anyDone ? `Continue · part ${steps.indexOf(current) + 1} of ${steps.length}` : current.resumes ? "Continue" : "Start"}
         </button>
       ) : (
-        <div className="text-sm text-emerald-700 bg-emerald-50 rounded-2xl px-3 py-2.5 text-center">
-          Done for today — well done! Everything else in the app is optional.
-        </div>
+        <>
+          <div className="text-sm text-emerald-700 bg-emerald-50 rounded-2xl px-3 py-2.5 text-center">
+            Done for today — well done! Everything else is optional.
+          </div>
+          {extra ? (
+            <button onClick={() => onStart(extra)} className="w-full py-3 px-3 rounded-2xl bg-white border-2 border-stone-200 flex flex-col items-center leading-tight active:scale-[0.98] transition">
+              <span className="text-sm font-medium text-stone-700">Do another round</span>
+              <span className="text-xs text-stone-400 truncate max-w-full">{extra.title}</span>
+            </button>
+          ) : (
+            <div className="text-[11px] text-stone-400 text-center px-2">That's plenty for one day. It sticks best when you come back tomorrow.</div>
+          )}
+        </>
       )}
     </div>
   );
