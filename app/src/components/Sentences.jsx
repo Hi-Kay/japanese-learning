@@ -82,7 +82,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
   };
 
   // Exercises get harder as a sentence settles in memory:
-  // recognize it by ear → fill in its particle → build it → build it from audio alone.
+  // recognize it by ear → fill in its particle → build it → say it from memory.
   const makeItem = (s, type, particles) => {
     const it = { key: `${s.id}-${type}-${Math.random().toString(36).slice(2, 7)}`, sentence: s, type };
     if (type === "particle") {
@@ -103,7 +103,9 @@ export default function Sentences({ section = "today", progress, recordResult, s
     }
     return it;
   };
-  const typeFor = (s) => ["listen", "particle", "build"][boxOf(s)] ?? "dictation";
+  // A new sentence is heard and built in its first session; from the first review on
+  // it has to be said from memory, with one round of building it by ear in between.
+  const typeFor = (s) => ["listen", "particle", "say", "dictation"][boxOf(s)] ?? "say";
 
   const startLesson = (l) => {
     paused = null;

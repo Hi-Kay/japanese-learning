@@ -16,6 +16,7 @@ const KIND_NAMES = {
   listen: "Listen and pick the meaning",
   build: "Build the Japanese sentence from word tiles, given the English (two extra tiles don't belong in it)",
   particle: "Fill in the missing particle",
+  say: "Say the Japanese sentence aloud from memory, given the English, then compare with the answer and rate yourself",
   dictation: "Listen and build the sentence from word tiles (two extra tiles don't belong in it)",
 };
 
@@ -30,6 +31,7 @@ function yourAnswer(item, result) {
 }
 
 function learnerAnswer(item, result) {
+  if (item.type === "say") return `said it aloud and judged it ${result.correct ? "right" : "not right yet"} (the app can't hear it)`;
   if (item.type === "listen") return `picked the meaning “${yourAnswer(item, result)}”`;
   if (item.type === "particle") return `put ${yourAnswer(item, result)} in the gap where ${item.sentence.tokens[item.blank].jp} goes`;
   return `built ${yourAnswer(item, result)}`;
@@ -111,7 +113,7 @@ export default function AskTutor({ item, result, app, showRomaji, onClose }) {
           <div className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white border border-stone-200">
             <SentenceView tokens={item.sentence.tokens} showRomaji={showRomaji} size="sm" />
             <span className="text-xs text-stone-500">{item.sentence.en}</span>
-            {!result.correct && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
+            {!result.correct && item.type !== "say" && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
           </div>
 
           {!access ? (

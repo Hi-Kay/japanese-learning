@@ -13,6 +13,7 @@ const KINDS = {
   build: { label: "BUILD", cls: "bg-violet-100 text-violet-700", prompt: "Build this in Japanese" },
   particle: { label: "PARTICLE", cls: "bg-amber-100 text-amber-700", prompt: "Which particle fits?" },
   dictation: { label: "LISTEN & BUILD", cls: "bg-emerald-100 text-emerald-700", prompt: "Build what you hear" },
+  say: { label: "SAY IT", cls: "bg-rose-100 text-rose-700", prompt: "Say this in Japanese, out loud" },
 };
 
 const say = (s, slow) => (slow ? speak(slowSpeechText(s.tokens), 0.6) : speak(speechText(s.tokens)));
@@ -118,6 +119,42 @@ function ParticleExercise({ item, result, onAnswer, showRomaji }) {
   );
 }
 
+// Producing the sentence from nothing: see the English, say the Japanese aloud, then
+// look at the answer, hear it, and judge yourself. No tiles to recognize — the words
+// have to come from memory. The rating moves straight on to the next exercise.
+function SayExercise({ item, result, onAnswer, showRomaji }) {
+  const { sentence } = item;
+  const [revealed, setRevealed] = useState(!!result);
+  const reveal = () => { setRevealed(true); say(sentence); };
+  return (
+    <>
+      <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
+      {!revealed ? (
+        <>
+          <div className="w-full min-h-[4.5rem] flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-stone-200 text-sm text-stone-400">
+            <Icon name="mic" size={18} /> Say it first — then check
+          </div>
+          <button onClick={reveal} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium">Show the answer</button>
+        </>
+      ) : (
+        <>
+          <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />
+          <AudioButtons sentence={sentence} />
+          {!result && (
+            <>
+              <div className="text-sm text-stone-500">Did you say it like this?</div>
+              <div className="w-full grid grid-cols-2 gap-2">
+                <button onClick={() => onAnswer({ correct: false }, true)} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
+                <button onClick={() => onAnswer({ correct: true }, true)} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
 function Feedback({ item, result, showRomaji, onContinue, continueLabel = "Continue", onAsk }) {
   const s = item.sentence;
   const good = result.correct;
@@ -180,17 +217,28 @@ export default function SentenceSession({ items, saved, hasLesson, showRomaji, t
   const result = results[shown] ?? null;
   const kind = KINDS[item.type];
 
-  const answer = (r) => {
+  // `advance`: go straight on, without the feedback panel (the Say it exercise has
+  // already shown the answer).
+  const answer = (r, advance = false) => {
     setResults((rs) => { const next = [...rs]; next[idx] = r; return next; });
-    if (item.retry) return;
-    onGrade(item.sentence, r.correct);
-    setFirstTries((f) => [...f, r.correct]);
-    if (!r.correct) {
-      const again = { ...item, key: `${item.key}-again`, retry: true };
-      if (item.shuffled) again.shuffled = shuffle(item.shuffled);
-      if (item.type === "listen") again.options = shuffle(item.options);
-      setQueue((q) => [...q, again]);
+    let tries = firstTries;
+    let length = queue.length;
+    if (!item.retry) {
+      onGrade(item.sentence, r.correct);
+      tries = [...firstTries, r.correct];
+      setFirstTries(tries);
+      if (!r.correct) {
+        const again = { ...item, key: `${item.key}-again`, retry: true };
+        if (item.shuffled) again.shuffled = shuffle(item.shuffled);
+        if (item.type === "listen") again.options = shuffle(item.options);
+        setQueue((q) => [...q, again]);
+        length++;
+      }
     }
+    if (!advance) return;
+    stopSpeaking();
+    if (idx + 1 >= length) onFinish(tries);
+    else setIdx(idx + 1);
   };
 
   const next = () => {
@@ -228,6 +276,7 @@ export default function SentenceSession({ items, saved, hasLesson, showRomaji, t
         {item.type === "listen" && <ListenExercise {...props} />}
         {(item.type === "build" || item.type === "dictation") && <BuildExercise {...props} />}
         {item.type === "particle" && <ParticleExercise {...props} />}
+        {item.type === "say" && <SayExercise {...props} />}
       </div>
       {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} continueLabel={peek != null ? "Back to where I was" : "Continue"} onAsk={() => setAsking(true)} />}
       {result && asking && <AskTutor item={item} result={result} app={tutorApp} showRomaji={showRomaji} onClose={() => setAsking(false)} />}

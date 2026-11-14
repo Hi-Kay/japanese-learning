@@ -61,10 +61,12 @@ The Sentences section is built on a few well-supported principles:
 - **Teach, then test.** Each lesson opens with the pattern, the new words, and all
   example sentences with audio — before any exercise.
 - **Recognize before you produce.** Exercises get harder as a sentence settles in:
-  *listen and pick the meaning* → *pick the missing particle* → *build it from tiles*
-  (with two extra tiles that don't belong)
-  → *build it from audio alone* (a form of dictation, which trains hearing individual
-  words).
+  *listen and pick the meaning* → *build it from tiles* (with two extra tiles that don't
+  belong) in the first session, then from the first review on *say it*: you see the
+  English, say the Japanese out loud from memory, then look at the answer, hear it, and
+  rate yourself ("Yes" / "Not yet"). One review in between is *build it from audio
+  alone* (a form of dictation, which trains hearing individual words). A missed
+  sentence comes back with *pick the missing particle*.
 - **Retrieval + spacing.** Every answer is checked automatically and feeds the same
   spaced-repetition scheduler; practice testing and distributed practice are the two
   techniques rated "high utility" in Dunlosky et al.'s 2013 review. Re-practicing on
