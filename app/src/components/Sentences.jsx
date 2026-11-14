@@ -17,7 +17,8 @@ const keyOf = (s) => `s:${s.id}`;
 const readingOf = (jp) => parseFurigana(jp).map((x) => x.rt ?? x.text).join("");
 const REVIEW_SIZE = 12;
 
-const PARTICLE_CHARS = new Set(["は", "が", "を", "に", "で", "か"]);
+const PARTICLE_CHARS = new Set(["は", "が", "を", "に", "で", "か", "の", "も", "と", "から", "まで"]);
+const ALSO_FITS = { wa: ["mo"], ga: ["mo"], o: ["mo"], mo: ["wa", "ga", "o"], ni: ["kara", "made"], kara: ["ni"], made: ["ni"] };
 const formulaTokens = (formula) => formula.map(([role, label]) => ({ jp: label, role, particle: PARTICLE_CHARS.has(label) }));
 
 // A session left with Back ({ lessonIdx, state }), so it can be continued later —
@@ -89,7 +90,10 @@ export default function Sentences({ section = "today", progress, recordResult, s
       const blanks = s.tokens.map((t, i) => (t.particle ? i : -1)).filter((i) => i >= 0);
       if (!blanks.length || particles.length < 2) return makeItem(s, "build", particles);
       it.blank = blanks[Math.floor(Math.random() * blanks.length)];
-      it.options = particles;
+      // Leave out particles that would also make a correct sentence in the same gap
+      // (私は / 私も, 駅に / 駅まで), so there is one right answer.
+      const alsoFits = ALSO_FITS[s.tokens[it.blank].id] ?? [];
+      it.options = particles.filter((p) => !alsoFits.includes(p.id));
     }
     if (type === "build" || type === "dictation") {
       it.extra = extraTiles(s, particles);

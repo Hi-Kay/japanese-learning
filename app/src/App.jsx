@@ -10,6 +10,7 @@ import { storage } from "./lib/storage.js";
 import { nextDue } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
 import TextSizeButton from "./components/TextSizeButton.jsx";
+import { LESSONS } from "./data/sentences.js";
 
 const TABS = [
   { id: "today", label: "Today", icon: "check" },
@@ -19,7 +20,7 @@ const TABS = [
 
 // Everything outside the Today plan lives in the Library, for browsing and free practice.
 const SECTIONS = [
-  { id: "lessons", label: "Lessons", detail: "All 12 sentence patterns", icon: "chat" },
+  { id: "lessons", label: "Lessons", detail: `All ${LESSONS.length} sentence patterns`, icon: "chat" },
   { id: "kana", label: "Kana", detail: "Hiragana and katakana", icon: "notes" },
   { id: "words", label: "Words", detail: "Extra vocabulary by topic · optional", icon: "globe" },
   { id: "kanji", label: "Kanji", detail: "Optional for now", icon: "brush" },

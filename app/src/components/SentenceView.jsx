@@ -23,7 +23,7 @@ export default function SentenceView({ tokens, showRomaji, gloss = true, size = 
         <div key={bi} className={`flex items-end gap-1.5 rounded-xl border px-2 py-1 ${ROLES[b.role].cls}`}>
           {b.tokens.map((t, ti) => (
             <div key={ti} className="flex flex-col items-center leading-tight">
-              <span className={`${text} ${t.particle || t.id === "ka" ? "font-bold" : ""}`}><Ruby jp={t.jp} />{t.comma ? "、" : ""}</span>
+              <span className={`${text} ${t.particle || t.glue || t.id === "ka" ? "font-bold" : ""}`}><Ruby jp={t.jp} />{t.comma ? "、" : ""}</span>
               {showRomaji && t.ro && <span className="text-[10px] opacity-70">{t.ro}</span>}
               {gloss && t.en && <span className="text-[10px] opacity-60 whitespace-nowrap">{t.en}</span>}
             </div>

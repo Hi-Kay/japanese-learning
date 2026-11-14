@@ -24,6 +24,10 @@ export const PARTICLE_NOTES = {
   ni: "に marks where you go (“to”) or where something is.",
   de: "で marks where an action happens (“at / in”).",
   ga: "が marks what exists, or what is liked.",
+  mo: "も means “also / too”. It takes the place of は, が or を.",
+  to: "と after a person means “with”. Between two things it means “and”.",
+  kara: "から marks the starting point — “from” a place or a time.",
+  made: "まで marks the end point — “until” a time, “as far as” a place.",
 };
 
 // [id, japanese (with furigana), romaji, english gloss]
@@ -71,12 +75,36 @@ const WORDS = [
   ["tabemashita", "食[た]べました", "tabemashita", "ate"], ["ikimashita", "行[い]きました", "ikimashita", "went"],
   ["mimashita", "見[み]ました", "mimashita", "watched"], ["nomimashita", "飲[の]みました", "nomimashita", "drank"],
   ["benkyoushita", "勉強[べんきょう]しました", "benkyou shimashita", "studied"],
+  // ----- lessons 13–20 -----
+  // more particles; "and" is the と between two things, "to" the と after a person
+  ["no", "の", "no", "'s / of"], ["mo", "も", "mo", "also"], ["and", "と", "to", "and"], ["to", "と", "to", "with"],
+  ["kara", "から", "kara", "from"], ["made", "まで", "made", "until / up to"],
+  ["dare", "誰[だれ]", "dare", "who"], ["doitsu", "ドイツ", "doitsu", "Germany"], ["kyou", "今日[きょう]", "kyou", "today"],
+  ["issho", "一緒[いっしょ]に", "issho ni", "together"],
+  // describing words (い-adjectives)
+  ["oishii", "おいしい", "oishii", "delicious"], ["takai", "高[たか]い", "takai", "expensive"], ["yasui", "安[やす]い", "yasui", "cheap"],
+  ["ookii", "大[おお]きい", "ookii", "big"], ["tanoshii", "楽[たの]しい", "tanoshii", "fun"], ["atsui", "暑[あつ]い", "atsui", "hot"],
+  ["atarashii", "新[あたら]しい", "atarashii", "new"], ["ii", "いい", "ii", "good"],
+  // clock times
+  ["nanji", "何時[なんじ]", "nanji", "what time"], ["sanji", "三時[さんじ]", "sanji", "3 o'clock"], ["goji", "五時[ごじ]", "goji", "5 o'clock"],
+  ["rokuji", "六時[ろくじ]", "rokuji", "6 o'clock"], ["shichiji", "七時[しちじ]", "shichiji", "7 o'clock"],
+  ["hachiji", "八時[はちじ]", "hachiji", "8 o'clock"], ["kuji", "九時[くじ]", "kuji", "9 o'clock"],
+  // more verb forms
+  ["okimasu", "起[お]きます", "okimasu", "get up"], ["kimashita", "来[き]ました", "kimashita", "came"],
+  ["ikimasen", "行[い]きません", "ikimasen", "don't go"],
+  ["ikimashou", "行[い]きましょう", "ikimashou", "let's go"], ["tabemashou", "食[た]べましょう", "tabemashou", "let's eat"],
+  ["nomimashou", "飲[の]みましょう", "nomimashou", "let's drink"],
 ];
 
-const PHRASE_PARTICLES = new Set(["wa", "ga", "o", "ni", "de"]);
+const PHRASE_PARTICLES = new Set(["wa", "ga", "o", "ni", "de", "mo", "to", "kara", "made"]);
+// Words that tie their neighbours into one phrase: の and the "and" と join the word
+// before and after (私の本, パンと水); a describing word belongs to the word after it
+// (おいしい寿司). Such a group moves through the sentence as one block.
+const GLUE = new Set(["no", "and"]);
+const PRE = new Set(["oishii", "takai", "yasui", "ookii", "tanoshii", "atsui", "atarashii", "ii"]);
 
 export const LEXICON = Object.fromEntries(
-  WORDS.map(([id, jp, ro, en]) => [id, { id, jp, ro, en, particle: PHRASE_PARTICLES.has(id) }]),
+  WORDS.map(([id, jp, ro, en]) => [id, { id, jp, ro, en, particle: PHRASE_PARTICLES.has(id), glue: GLUE.has(id), pre: PRE.has(id) }]),
 );
 
 // Each lesson: one pattern. `formula` blocks render as the colored pattern
@@ -247,6 +275,122 @@ const LESSON_DEFS = [
       ["koohii:O o:O nomimashita:V ka:V", "Did you drink coffee?"],
     ],
   },
+  {
+    id: "no", title: "Say whose it is — の", gist: "e.g. “This is my book.”",
+    formula: [["T", "X"], ["T", "の"], ["T", "Y"]],
+    note: "の links two nouns: the first one describes the second. 私の本 = my book, 日本語の本 = a Japanese book, 友達の家 = my friend's house. The main word always comes last.",
+    sentences: [
+      ["kore:T wa:T watashi:V no:V hon:V desu:V", "This is my book."],
+      ["kore:T wa:T dare:V no:V koohii:V desu:V ka:V", "Whose coffee is this?"],
+      ["tanaka:V no:V desu:V", "It's Tanaka-san's."],
+      ["watashi:T no:T tomodachi:T wa:T sensei:V desu:V", "My friend is a teacher."],
+      ["nihongo:O no:O hon:O o:O yomimasu:V", "I read a Japanese book."],
+      ["tomodachi:L no:L ie:L ni:L ikimasu:V", "I go to my friend's house."],
+    ],
+  },
+  {
+    id: "mo", title: "Say “me too” — も", gist: "e.g. “I'm going too.”",
+    formula: [["T", "X"], ["T", "も"], ["V", "…"]],
+    note: "も means “also / too”. It replaces は, が or を — never both together: 私は行きます → 私も行きます.",
+    sentences: [
+      ["watashi:T mo:T ikimasu:V", "I'm going too."],
+      ["watashi:T mo:T gakusei:V desu:V", "I'm a student too."],
+      ["kore:O mo:O kudasai:V", "This one too, please."],
+      ["sushi:S mo:S suki:V desu:V", "I like sushi too."],
+      ["tanaka:T mo:T koohii:O o:O nomimasu:V", "Tanaka-san drinks coffee too."],
+      ["watashi:T mo:T nihon:L ni:L ikitai:V desu:V", "I want to go to Japan too."],
+    ],
+  },
+  {
+    id: "to", title: "Say “and” and “with” — と", gist: "e.g. “Bread and water.” “With a friend.”",
+    formula: [["O", "X"], ["O", "と"], ["O", "Y"]],
+    note: "と between two things means “and”: パンと水. After a person it means “with”: 友達と = with a friend. It only joins nouns — never whole sentences.",
+    sentences: [
+      ["pan:O and:O mizu:O o:O kaimasu:V", "I buy bread and water."],
+      ["biiru:O and:O sushi:O o:O kudasai:V", "Beer and sushi, please."],
+      ["koohii:S and:S ocha:S ga:S arimasu:V", "There's coffee and tea."],
+      ["tomodachi:Q to:Q eiga:O o:O mimasu:V", "I watch a movie with a friend."],
+      ["tanaka:Q to:Q toukyou:L ni:L ikimashita:V", "I went to Tokyo with Tanaka-san."],
+      ["dare:Q to:Q ikimasu:V ka:V", "Who are you going with?"],
+    ],
+  },
+  {
+    id: "adjectives", title: "Say what it's like — 〜いです", gist: "e.g. “This is delicious.”",
+    formula: [["T", "X"], ["T", "は"], ["V", "〜い"], ["V", "です"]],
+    note: "Describing words like おいしい (delicious) end in い and go straight before です. No extra word for “is” — です just makes it polite.",
+    sentences: [
+      ["kore:T wa:T oishii:V desu:V", "This is delicious."],
+      ["sushi:T wa:T oishii:V desu:V ka:V", "Is the sushi good?"],
+      ["nihongo:T wa:T tanoshii:V desu:V", "Japanese is fun."],
+      ["toukyou:T wa:T ookii:V desu:V", "Tokyo is big."],
+      ["kyou:T wa:T atsui:V desu:V", "It's hot today."],
+      ["kore:T wa:T takai:V desu:V", "This is expensive."],
+    ],
+  },
+  {
+    id: "adjnoun", title: "Describe a thing — おいしい寿司", gist: "e.g. “I ate delicious sushi.”",
+    formula: [["O", "〜い"], ["O", "X"], ["O", "を"], ["V", "verb"]],
+    note: "A describing word goes directly before its noun — nothing in between: おいしい寿司 = delicious sushi, 新しい本 = a new book. The two then move as one block.",
+    sentences: [
+      ["oishii:O sushi:O o:O tabemashita:V", "I ate delicious sushi."],
+      ["yasui:O koohii:O o:O kaimasu:V", "I buy cheap coffee."],
+      ["atarashii:O hon:O o:O yomimasu:V", "I read a new book."],
+      ["ookii:S neko:S ga:S imasu:V", "There's a big cat."],
+      ["ii:O eiga:O o:O mimashita:V", "I watched a good movie."],
+      ["kore:T wa:T ii:V hon:V desu:V", "This is a good book."],
+      ["takai:L resutoran:L ni:L ikimashita:V", "I went to an expensive restaurant."],
+    ],
+  },
+  {
+    id: "time", title: "Say when — 〜時に", gist: "e.g. “I get up at seven.”",
+    formula: [["M", "time"], ["M", "に"], ["V", "verb"]],
+    note: "A clock time is the number + 時 (じ). It takes に: 七時に = at seven. Words like 明日 or 毎日 take no particle.",
+    box: {
+      title: "The hours",
+      items: [["一時[いちじ]", "ichiji", "1"], ["二時[にじ]", "niji", "2"], ["三時[さんじ]", "sanji", "3"], ["四時[よじ]", "yoji", "4"], ["五時[ごじ]", "goji", "5"], ["六時[ろくじ]", "rokuji", "6"],
+        ["七時[しちじ]", "shichiji", "7"], ["八時[はちじ]", "hachiji", "8"], ["九時[くじ]", "kuji", "9"], ["十時[じゅうじ]", "juuji", "10"], ["十一時[じゅういちじ]", "juuichiji", "11"], ["十二時[じゅうにじ]", "juuniji", "12"]],
+      notes: [
+        "Three hours are special: 四時[よじ] (not “yonji”), 七時[しちじ] and 九時[くじ] (not “kyuuji”).",
+        "Half past: add 半[はん] — 三時半[さんじはん] is half past three.",
+        "To ask: 何時[なんじ]ですか — what time is it?",
+      ],
+    },
+    sentences: [
+      ["nanji:V desu:V ka:V", "What time is it?"],
+      ["sanji:V desu:V", "It's three o'clock."],
+      ["shichiji:M ni:M okimasu:V", "I get up at seven."],
+      ["kuji:M ni:M kaisha:L ni:L ikimasu:V", "I go to the office at nine."],
+      ["rokuji:M ni:M ie:L ni:L kaerimasu:V", "I go home at six."],
+      ["hachiji:M ni:M gohan:O o:O tabemasu:V", "I eat at eight."],
+      ["nanji:M ni:M ikimasu:V ka:V", "What time are you going?"],
+    ],
+  },
+  {
+    id: "karamade", title: "Say from where, until when — から · まで", gist: "e.g. “I'm from Germany.”",
+    formula: [["M", "X"], ["M", "から"], ["M", "Y"], ["M", "まで"]],
+    note: "から = from, まで = until / as far as. They work for places and for times. ドイツから来ました — “I came from Germany” — is how you say where you're from.",
+    sentences: [
+      ["doitsu:L kara:L kimashita:V", "I'm from Germany."],
+      ["doko:L kara:L kimashita:V ka:V", "Where are you from?"],
+      ["kuji:M kara:M hatarakimasu:V", "I work from nine."],
+      ["kuji:M kara:M goji:M made:M hatarakimasu:V", "I work from nine to five."],
+      ["eki:L made:L ikimasu:V", "I go as far as the station."],
+      ["ashita:M kara:M nihongo:O o:O benkyou:V", "From tomorrow I'll study Japanese."],
+    ],
+  },
+  {
+    id: "mashou", title: "Suggest something — ましょう · ませんか", gist: "e.g. “Let's go.” “Shall we have a coffee?”",
+    formula: [["O", "X"], ["O", "を"], ["V", "verb-ましょう"]],
+    note: "Swap ます for ましょう to say “let's”: 行きます → 行きましょう. To invite someone politely, ask with ませんか — literally “won't you…?”: コーヒーを飲みませんか.",
+    sentences: [
+      ["ikimashou:V", "Let's go."],
+      ["issho:Q tabemashou:V", "Let's eat together."],
+      ["koohii:O o:O nomimasen:V ka:V", "Shall we have a coffee?"],
+      ["eiga:O o:O mimasen:V ka:V", "Shall we watch a movie?"],
+      ["hai:Q, nomimashou:V", "Yes, let's have a drink."],
+      ["ashita:M, toukyou:L ni:L ikimasen:V ka:V", "Shall we go to Tokyo tomorrow?"],
+    ],
+  },
 ];
 
 function parseToken(spec) {
@@ -281,5 +425,5 @@ export function newWordsIn(lesson) {
 // Phrase particles introduced up to (and including) a lesson — used as answer options.
 export function particlesKnownBy(lessonIndex) {
   const ids = new Set(LESSONS.slice(0, lessonIndex + 1).flatMap((l) => l.sentences.flatMap((s) => s.tokens.filter((t) => t.particle).map((t) => t.id))));
-  return ["wa", "o", "ni", "de", "ga"].filter((id) => ids.has(id)).map((id) => LEXICON[id]);
+  return ["wa", "o", "ni", "de", "ga", "mo", "to", "kara", "made"].filter((id) => ids.has(id)).map((id) => LEXICON[id]);
 }

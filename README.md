@@ -20,7 +20,7 @@ The Library has four sections:
 
 | Section | Content |
 | --- | --- |
-| **Lessons** | 12 lessons, one core sentence pattern each (70 sentences, ~70 useful words) |
+| **Lessons** | 20 lessons, one core sentence pattern each (120 sentences, ~100 useful words) |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words — optional |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 — optional |
@@ -31,7 +31,10 @@ speak to — see [AI Tutor](#ai-tutor).
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
 Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
 Not doing (ません) · Going somewhere (に) · Where it happens (で) · There is / I have
-(があります) · Likes (が好きです) · Wanting (たいです) · The past (ました).
+(があります) · Likes (が好きです) · Wanting (たいです) · The past (ました) · Whose it is (の) ·
+"Me too" (も) · "And" and "with" (と) · What it's like (〜いです) · Describing a thing
+(おいしい寿司) · Clock times (〜時に) · From / until (から, まで) · Suggesting (ましょう,
+ませんか).
 
 Vocabulary categories: Greetings & Basics, Numbers, Days & Time, Survival Phrases,
 Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.

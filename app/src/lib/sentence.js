@@ -29,8 +29,10 @@ export const surface = (jp) => parseFurigana(jp).map((s) => s.text).join("");
 export const sentenceText = (tokens) => tokens.map((t) => surface(t.jp) + (t.comma ? "、" : "")).join("") + "。";
 
 // Split a sentence into its movable phrases and its fixed ending.
-// A phrase is a run of words closed by a phrase particle (は/が/を/に/で), or a lone
-// time word like 毎日. The ending is everything after the last phrase particle.
+// A phrase is a run of words closed by a phrase particle (は/が/を/に/で/も/と/から/まで),
+// or a lone time word like 毎日. Words tied together stay in one phrase: の and the
+// "and" と (`glue`) hold on to both neighbours, a describing word (`pre`) to the word
+// after it. The ending is everything after the last phrase particle.
 export function structure(tokens) {
   let last = -1;
   tokens.forEach((t, i) => { if (t.particle) last = i; });
@@ -41,7 +43,8 @@ export function structure(tokens) {
     cur.push(i);
     const t = tokens[i];
     const next = tokens[i + 1];
-    if (t.particle || t.comma || (next && !next.particle && i + 1 < tailStart)) { phrases.push(cur); cur = []; }
+    const tied = t.glue || t.pre || next?.glue;
+    if (t.particle || t.comma || (next && !next.particle && !tied && i + 1 < tailStart)) { phrases.push(cur); cur = []; }
   }
   if (cur.length) phrases.push(cur);
   const tail = tokens.map((_, i) => i).slice(tailStart);
@@ -50,7 +53,7 @@ export function structure(tokens) {
 
 // Words whose kanji a speech engine might read the wrong way (明日 as あす,
 // 家 as うち…) are spoken from their kana reading instead.
-const SPEAK_KANA = new Set(["ashita", "kinou", "ie", "nan", "nani", "nihon", "doitsujin"]);
+const SPEAK_KANA = new Set(["ashita", "kinou", "ie", "nan", "nani", "nihon", "doitsujin", "kyou"]);
 const reading = (jp) => parseFurigana(jp).map((s) => s.rt ?? s.text).join("");
 const spoken = (t) => (SPEAK_KANA.has(t.id) ? reading(t.jp) : surface(t.jp)) + (t.comma ? "、" : "");
 
