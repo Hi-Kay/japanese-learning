@@ -149,7 +149,8 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   };
   const knownCount = source.filter((it) => statusOf(it[0]) === "known").length;
   const now = Date.now();
-  const dueCount = source.reduce((acc, it) => acc + reviewDirs.filter((d) => { const st = progress[`${it[0]}|${d}`]; return !st || st.due <= now; }).length, 0);
+  // Only what has been studied before can be due — new characters are not a backlog.
+  const dueCount = source.reduce((acc, it) => acc + reviewDirs.filter((d) => { const st = progress[`${it[0]}|${d}`]; return st && st.due <= now; }).length, 0);
 
   const changeSet = (s) => { setSet(s); setView("home"); };
   const startLearn = (i) => { setLearnIdx(i); setLearnFlipped(false); setView("learn"); };
@@ -225,7 +226,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           <span className="text-sm text-stone-400">of {source.length} known</span>
         </div>
         {isKanji && (
-          <div className="text-[11px] text-stone-500 bg-stone-100 rounded-xl px-3 py-2 text-center max-w-sm -mt-1">Optional for now — Sentences and Kana come first. The Today plan on the Sentences tab tells you what to do.</div>
+          <div className="text-[11px] text-stone-500 bg-stone-100 rounded-xl px-3 py-2 text-center max-w-sm -mt-1">Optional for now — Sentences and Kana come first. The Today plan tells you what to do.</div>
         )}
         {isKanji && <ReadingsInfo />}
         {set === "rtk" && (
@@ -239,7 +240,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           </div>
         )}
         <button onClick={() => startReview()} className="w-full max-w-sm py-4 rounded-2xl bg-rose-500 text-white font-medium flex items-center justify-center gap-2 shadow active:scale-[0.99] transition">
-          <Icon name="cards" size={20} /> Review <span className="text-rose-100 text-sm font-normal">· {dueCount} due</span>
+          <Icon name="cards" size={20} /> {dueCount ? "Review" : "Practice"}{dueCount > 0 && <span className="text-rose-100 text-sm font-normal">· {dueCount} due</span>}
         </button>
         <div className="text-[11px] text-stone-400 -mt-2">Tap any character below to study it</div>
         <div className="w-full flex flex-col gap-3">

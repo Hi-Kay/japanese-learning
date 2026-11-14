@@ -31,7 +31,9 @@ function shuffleApart(order) {
   return s;
 }
 
-export default function Sentences({ progress, recordResult, showRomaji, tutorApp, onImmersive, onGoKana }) {
+// `section` picks the home screen: "today" shows only the Today plan, "lessons" the
+// list of all lessons (in the Library). Sessions work the same from either.
+export default function Sentences({ section = "today", progress, recordResult, showRomaji, tutorApp, onImmersive, onGoKana }) {
   const [view, setView] = useState("home"); // home | intro | session | summary
   const [lessonIdx, setLessonIdx] = useState(null);
   const [items, setItems] = useState([]);
@@ -349,9 +351,8 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
 
   return (
     <div className="flex flex-col gap-4">
-      <TodayPlan steps={todaySteps()} onStart={(step) => { setDayRun(true); step.onClick(); }} />
-      <div className="flex flex-col gap-1.5 mt-1">
-        <div className="text-xs font-medium text-stone-500 px-1">All lessons</div>
+      {section === "today" && <TodayPlan steps={todaySteps()} onStart={(step) => { setDayRun(true); step.onClick(); }} />}
+      {section === "lessons" && <div className="flex flex-col gap-1.5">
         {LESSONS.map((l) => {
           const st = statusOf(l);
           const line = statusLine(st);
@@ -365,7 +366,7 @@ export default function Sentences({ progress, recordResult, showRomaji, tutorApp
             </button>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

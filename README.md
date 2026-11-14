@@ -14,15 +14,19 @@ works offline and needs no account. Only the optional AI Tutor goes online (see 
 
 ## What's inside
 
-The app has five tabs:
+The app has three tabs: **Today** (the daily plan), **Library** (everything to browse
+or practice freely) and **Tutor**. Romaji, text size and voice sit behind **Settings**.
+The Library has four sections:
 
-| Tab | Content |
+| Section | Content |
 | --- | --- |
-| **Sentences** | 12 lessons, one core sentence pattern each (70 sentences, ~70 useful words) |
-| **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words |
+| **Lessons** | 12 lessons, one core sentence pattern each (70 sentences, ~70 useful words) |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
-| **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 |
-| **Tutor** | An AI tutor (Claude or Mistral, with your own key) you can write or speak to — see [AI Tutor](#ai-tutor) |
+| **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words — optional |
+| **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 — optional |
+
+The **Tutor** is an AI tutor (Claude or Mistral, with your own key) you can write or
+speak to — see [AI Tutor](#ai-tutor).
 
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
 Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
@@ -34,7 +38,7 @@ Common Verbs, Adjectives, Food & Restaurant, Travel & Directions.
 
 ## The learning method
 
-The Sentences tab opens with a **Today plan** — about 10 minutes: review what's due,
+The app opens with the **Today plan** — about 10 minutes: review what's due,
 one new lesson (or finish the current one), and one small kana step, then "Done for
 today". One button runs the parts in order; after each part its summary shows the score
 and offers the next one. Everything else is optional.
