@@ -1,6 +1,52 @@
 import { storage } from "./storage.js";
+import RECORDED from "../data/audio.json";
 
-// Japanese text-to-speech via the browser's built-in voices.
+// Speech: a recording when there is one (everything in the lessons, kana and words is
+// pre-recorded with a neural voice, see scripts/make-audio.mjs), otherwise Japanese
+// text-to-speech via the browser's built-in voices (the Tutor's free text, kanji).
+
+// ---------- Recordings ----------
+// One shared <audio> element: iPhones only let a page start sound from a tap, but an
+// element that has played once may be reused later (e.g. when the next exercise opens).
+// Files are fetched whole and played from memory, which also works offline from the
+// app's cache (Safari can't stream audio out of a service-worker cache).
+const SILENCE = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+const player = typeof Audio !== "undefined" ? new Audio() : null;
+const loaded = new Map(); // recording id → object URL
+let unlocked = false;
+let playToken = 0;
+
+async function playRecording(id, playbackRate, fallback) {
+  const token = ++playToken;
+  if (!unlocked) {
+    // Called inside the tap, before any waiting, so the element is allowed to play later.
+    player.src = SILENCE;
+    player.play().catch(() => {});
+    unlocked = true;
+  }
+  try {
+    if (!loaded.has(id)) {
+      const res = await fetch(`${import.meta.env.BASE_URL}audio/${id}.mp3`);
+      if (!res.ok) throw new Error(`audio ${res.status}`);
+      loaded.set(id, URL.createObjectURL(await res.blob()));
+    }
+    if (token !== playToken) return; // something newer was asked for meanwhile
+    player.src = loaded.get(id);
+    player.playbackRate = playbackRate;
+    await player.play();
+  } catch (e) {
+    // "AbortError" = interrupted by the next sound, which is fine. Anything else
+    // (file missing, offline before it was cached): use the built-in voice.
+    if (token === playToken && e?.name !== "AbortError") fallback();
+  }
+}
+
+function stopRecording() {
+  playToken++;
+  if (player && !player.paused) player.pause();
+}
+
+// ---------- Built-in voices ----------
 
 const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
 let voices = [];
@@ -60,6 +106,19 @@ let lastStart = 0; // when an utterance last actually started playing
 let lastStop = 0;  // when stopSpeaking() last cancelled something
 
 export function speak(text, rate = 0.85) {
+  const slow = rate <= 0.6;
+  // Sentences have their own slow take (with pauses); other recordings are slowed down.
+  const id = player && ((slow && RECORDED[`slow:${text}`]) || RECORDED[text]);
+  if (id) {
+    stopSynth();
+    playRecording(id, slow && !RECORDED[`slow:${text}`] ? 0.7 : 1, () => speakSynth(text, rate));
+    return;
+  }
+  stopRecording();
+  speakSynth(text, rate);
+}
+
+function speakSynth(text, rate) {
   if (!synth) return;
   unstick();
   const u = makeUtterance(text, rate);
@@ -84,6 +143,11 @@ export function speak(text, rate = 0.85) {
 
 // Silence whatever is playing, e.g. the last sentence when moving on to the next exercise.
 export function stopSpeaking() {
+  stopRecording();
+  stopSynth();
+}
+
+function stopSynth() {
   if (!synth) return;
   clearTimeout(delayed);
   if (synth.speaking || synth.pending) {

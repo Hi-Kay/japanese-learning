@@ -33,7 +33,7 @@ export default function VoicePicker({ onClose }) {
   return (
     <div className="w-full max-w-sm rounded-2xl bg-white border border-stone-200 p-3 flex flex-col gap-2 text-left">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-stone-700">Japanese voice</span>
+        <span className="text-sm font-medium text-stone-700">Phone voice · Tutor and kanji only</span>
         <button onClick={onClose} className="p-1 text-stone-400" title="Close"><Icon name="x" size={16} /></button>
       </div>
       {voices.length === 0 ? (
@@ -55,7 +55,7 @@ export default function VoicePicker({ onClose }) {
       {testLog && (
         <pre className="text-[11px] leading-relaxed text-stone-600 bg-stone-50 border border-stone-100 rounded-xl p-2 whitespace-pre-wrap">{testLog.join("\n")}</pre>
       )}
-      <div className="text-[11px] text-stone-400">Tap a voice to hear it. On iPhone, Safari only offers Apple's built-in voices, not the downloadable “Enhanced” ones.</div>
+      <div className="text-[11px] text-stone-400">Lessons, kana and words use recorded audio. Tap a voice to hear it. On iPhone, Safari only offers Apple's built-in voices, not the downloadable “Enhanced” ones.</div>
     </div>
   );
 }

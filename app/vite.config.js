@@ -31,6 +31,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // The recordings are part of the app, so they are there offline too.
+        globPatterns: ['**/*.{js,css,html,mp3}'],
         // Stroke-order SVGs are fetched live from a CDN; cache them so writing practice keeps working offline.
         runtimeCaching: [
           {

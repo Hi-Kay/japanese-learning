@@ -115,8 +115,9 @@ The Sentences section is built on a few well-supported principles:
   fills in the rest in either direction — type `dog` and get 犬 / いぬ · inu, or type
   犬 (or いぬ) and get the English.
 - **Save to My Words** from any kanji or vocabulary card.
-- **Audio** for every character, word, and example sentence via the device's Japanese
-  speech synthesis.
+- **Audio** for every sentence, lesson word, kana and vocabulary item is pre-recorded
+  with a neural Japanese voice, so it sounds the same on every device and works offline.
+  Only the Tutor's answers and single kanji use the device's built-in voice.
 - Works **offline** after the first visit; stroke diagrams are cached once viewed.
 
 ## AI Tutor
