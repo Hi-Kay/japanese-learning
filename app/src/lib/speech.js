@@ -1,5 +1,6 @@
 import { storage } from "./storage.js";
 import RECORDED from "../data/audio.json";
+import { SAY_AS } from "../data/sayAs.js";
 
 // Speech: a recording when there is one (everything in the lessons, kana and words is
 // pre-recorded with a neural voice, see scripts/make-audio.mjs), otherwise Japanese
@@ -111,11 +112,11 @@ export function speak(text, rate = 0.85) {
   const id = player && ((slow && RECORDED[`slow:${text}`]) || RECORDED[text]);
   if (id) {
     stopSynth();
-    playRecording(id, slow && !RECORDED[`slow:${text}`] ? 0.7 : 1, () => speakSynth(text, rate));
+    playRecording(id, slow && !RECORDED[`slow:${text}`] ? 0.7 : 1, () => speakSynth(SAY_AS[text] ?? text, rate));
     return;
   }
   stopRecording();
-  speakSynth(text, rate);
+  speakSynth(SAY_AS[text] ?? text, rate);
 }
 
 function speakSynth(text, rate) {

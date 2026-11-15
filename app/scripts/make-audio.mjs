@@ -20,6 +20,7 @@ import { parseFurigana, slowSpeechText, speechText, surface } from "../src/lib/s
 import { HIRAGANA, KATAKANA } from "../src/data/kana.js";
 import { KANA_EXTRA } from "../src/data/kanaExtra.js";
 import { ALL_VOCAB } from "../src/data/vocab.js";
+import { SAY_AS } from "../src/data/sayAs.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public/audio");
@@ -46,14 +47,28 @@ for (const l of LESSONS) {
   for (const w of newWordsIn(l)) add(surface(w.jp));
   for (const [jp] of l.box?.items ?? []) add(readingOf(jp));
 }
-for (const [ch] of [...HIRAGANA, ...KATAKANA]) add(ch);
+// A single katakana is the same sound as its hiragana, and the voice misreads some of
+// them on their own (ダ, デ as the letter "D", シュ whispered): they share the hiragana's file.
+const sameAs = new Map();
+const toHiragana = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const addKana = (kana) => {
+  const hira = toHiragana(kana);
+  if (hira === kana) add(kana);
+  else { add(hira); sameAs.set(kana, hira); }
+};
+for (const [ch] of [...HIRAGANA, ...KATAKANA]) addKana(ch);
 for (const set of Object.values(KANA_EXTRA)) {
-  for (const g of set) for (const it of g.items) { add(it.kana); add(it.pair?.kana); }
+  for (const g of set) for (const it of g.items) {
+    if (g.kind === "chars") addKana(it.kana); else add(it.kana);
+    add(it.pair?.kana);
+  }
 }
 for (const it of ALL_VOCAB) { add(it.jp); add(it.example?.jp); }
 
 const idOf = (key) => createHash("sha1").update(key).digest("hex").slice(0, 12);
-const manifest = Object.fromEntries([...items.keys()].sort().map((k) => [k, idOf(k)]));
+const manifest = Object.fromEntries(
+  [...items.keys(), ...sameAs.keys()].sort().map((k) => [k, idOf(sameAs.get(k) ?? k)]),
+);
 const chars = [...items.values()].reduce((n, it) => n + it.text.length, 0);
 console.log(`${items.size} recordings, ${chars} characters of Japanese`);
 
@@ -67,7 +82,7 @@ const REGION = process.env.AZURE_SPEECH_REGION;
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const ssml = ({ text, slow }) =>
-  `<speak version="1.0" xml:lang="ja-JP"><voice name="${VOICE}"><prosody rate="${slow ? SLOW_RATE : RATE}">${esc(text)}</prosody></voice></speak>`;
+  `<speak version="1.0" xml:lang="ja-JP"><voice name="${VOICE}"><prosody rate="${slow ? SLOW_RATE : RATE}">${esc(SAY_AS[text] ?? text)}</prosody></voice></speak>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The voice endpoint wants a short-lived token (valid 10 minutes), fetched with the key.
@@ -159,7 +174,7 @@ if (!KEY || !REGION) {
 let made = 0;
 for (const [key, id] of Object.entries(manifest)) {
   const file = join(OUT, `${id}.mp3`);
-  if (existsSync(file)) continue;
+  if (existsSync(file) || !items.has(key)) continue;
   const audio = await record(items.get(key));
   if (audio.length < 500) throw new Error(`empty audio for ${key}`);
   writeFileSync(file, trimSilence(audio));
