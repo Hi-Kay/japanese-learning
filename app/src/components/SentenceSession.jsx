@@ -128,32 +128,63 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
   const { sentence } = item;
   const [revealed, setRevealed] = useState(!!result);
   const [mic, setMic] = useState("off"); // off · on · denied
-  const [clip, setClip] = useState(null); // the learner's own recording (object URL)
+  const [takes, setTakes] = useState([]); // the learner's own recordings: { n, url }
   const [typing, setTyping] = useState(result?.typed != null);
   const [typed, setTyped] = useState(result?.typed ?? "");
   const [empty, setEmpty] = useState(false);
-  const clipRef = useRef(null);
-  clipRef.current = clip;
-  useEffect(() => () => { cancelMic(); if (clipRef.current) URL.revokeObjectURL(clipRef.current); }, []);
+  const takesRef = useRef(takes);
+  takesRef.current = takes;
+  const count = useRef(0);
+  useEffect(() => () => { cancelMic(); takesRef.current.forEach((t) => URL.revokeObjectURL(t.url)); }, []);
 
+  // Ends the running recording and adds it to the takes (the last four are kept).
+  const finishTake = async () => {
+    const url = await stopMic();
+    setMic("off");
+    if (!url) return null;
+    const take = { n: ++count.current, url };
+    setTakes((ts) => {
+      const all = [...ts, take];
+      all.slice(0, -4).forEach((t) => URL.revokeObjectURL(t.url));
+      return all.slice(-4);
+    });
+    return take;
+  };
   const record = async () => {
-    if (mic === "on") { setClip(await stopMic()); setMic("off"); return; }
+    if (mic === "on") {
+      const take = await finishTake();
+      // After the answer is shown: hear the new take against the model right away.
+      if (take && revealed) playClip(take.url, () => say(sentence));
+      return;
+    }
     stopSpeaking();
-    if (clip) { URL.revokeObjectURL(clip); setClip(null); }
     try { await startMic(); setMic("on"); } catch { setMic("denied"); }
   };
   // Your own voice first, then the model right after it.
   const reveal = async () => {
-    const mine = mic === "on" ? await stopMic() : clip;
-    if (mic === "on") { setClip(mine); setMic("off"); }
+    const mine = mic === "on" ? await finishTake() : takes.at(-1);
     setRevealed(true);
-    if (mine) playClip(mine, () => say(sentence));
+    if (mine) playClip(mine.url, () => say(sentence));
     else say(sentence);
   };
   const check = () => {
     if (!typed.trim()) { setEmpty(true); return; }
     onAnswer({ ...checkTyped(sentence.tokens, typed), typed });
   };
+  const micOk = canRecord() && mic !== "denied";
+  const takeList = takes.length > 0 && (
+    <div className="w-full flex flex-col items-center gap-1.5">
+      <div className="text-xs text-stone-400">{takes.length > 1 ? "Your recordings — tap to compare" : "Your recording — tap to listen"}</div>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {takes.map((t) => (
+          <button key={t.n} onClick={() => playClip(t.url)} aria-label={`Play your recording ${t.n}`}
+            className="h-10 px-3.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium flex items-center gap-1.5 active:scale-95 transition">
+            <Icon name="volume" size={16} /> {t.n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   if (typing) {
     return (
@@ -183,14 +214,14 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
       <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
       {!revealed ? (
         <>
-          {canRecord() && mic !== "denied" ? (
+          {micOk ? (
             <div className="w-full flex flex-col items-center gap-2 py-1">
               <button onClick={record} aria-label={mic === "on" ? "Stop recording" : "Record yourself"}
                 className={`w-20 h-20 rounded-full flex items-center justify-center active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-500"}`}>
                 {mic === "on" ? <span className="w-6 h-6 rounded-md bg-white" /> : <Icon name="mic" size={34} />}
               </button>
               <div className="text-sm text-stone-500 text-center">
-                {mic === "on" ? "Recording… tap to stop" : clip ? "Recorded. Tap to record again." : "Say it out loud. Tap to record yourself."}
+                {mic === "on" ? "Recording… tap to stop" : takes.length ? "Tap the microphone to try again" : "Say it out loud. Tap to record yourself."}
               </div>
             </div>
           ) : (
@@ -198,26 +229,27 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
               <Icon name="mic" size={18} className="shrink-0" /> {mic === "denied" ? "No microphone access. Say it out loud, then check." : "Say it first, then check"}
             </div>
           )}
+          {takeList}
           <button onClick={reveal} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium">Show the answer</button>
           <button onClick={() => { cancelMic(); setMic("off"); stopSpeaking(); setTyping(true); }} className="text-sm text-stone-500 underline underline-offset-2">Type it instead</button>
         </>
       ) : (
         <>
           <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />
-          <div className="flex items-center justify-center gap-3">
-            {clip && (
-              <button onClick={() => playClip(clip)} className="h-11 px-4 rounded-full bg-stone-100 text-stone-600 text-sm font-medium flex items-center gap-1.5 active:scale-95 transition">
-                <Icon name="mic" size={16} /> You
-              </button>
-            )}
-            <AudioButtons sentence={sentence} />
-          </div>
+          <AudioButtons sentence={sentence} />
+          {takeList}
           {!result && (
             <>
+              {micOk && (
+                <button onClick={record}
+                  className={`h-11 px-4 rounded-full text-sm font-medium flex items-center gap-2 active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-600"}`}>
+                  {mic === "on" ? <><span className="w-3.5 h-3.5 rounded-sm bg-white" /> Recording… tap to stop</> : <><Icon name="mic" size={16} /> {takes.length ? "Record again" : "Record yourself"}</>}
+                </button>
+              )}
               <div className="text-sm text-stone-500">Did you say it like this?</div>
               <div className="w-full grid grid-cols-2 gap-2">
-                <button onClick={() => onAnswer({ correct: false }, true)} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
-                <button onClick={() => onAnswer({ correct: true }, true)} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
+                <button onClick={() => { cancelMic(); onAnswer({ correct: false }, true); }} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
+                <button onClick={() => { cancelMic(); onAnswer({ correct: true }, true); }} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
               </div>
             </>
           )}
