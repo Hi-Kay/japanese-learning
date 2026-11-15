@@ -19,6 +19,7 @@ let playToken = 0;
 
 async function playRecording(id, playbackRate, fallback) {
   const token = ++playToken;
+  player.onended = null;
   if (!unlocked) {
     // Called inside the tap, before any waiting, so the element is allowed to play later.
     player.src = SILENCE;
@@ -44,7 +45,23 @@ async function playRecording(id, playbackRate, fallback) {
 
 function stopRecording() {
   playToken++;
-  if (player && !player.paused) player.pause();
+  if (!player) return;
+  player.onended = null;
+  if (!player.paused) player.pause();
+}
+
+// Plays any sound by URL through the same element (the learner's own recording), then
+// calls `then` — unless something else was played or stopped meanwhile.
+export function playClip(url, then) {
+  stopSpeaking();
+  if (!player) { then?.(); return; }
+  const token = playToken;
+  const done = () => { player.onended = null; if (token === playToken) then?.(); };
+  unlocked = true;
+  player.src = url;
+  player.playbackRate = 1;
+  player.onended = done;
+  player.play().catch((e) => { if (e?.name !== "AbortError") done(); });
 }
 
 // ---------- Built-in voices ----------

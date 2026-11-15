@@ -92,3 +92,36 @@ export function checkOrder(tokens, order, { strict = false } = {}) {
   }
   return { correct: remaining.length === 0, exact: false };
 }
+
+// A typed answer ("Type it instead" in the Say it exercise). Each word may be written
+// in kana or as in the app (kanji), katakana and hiragana count the same, spaces and
+// punctuation are ignored, and — as with the tiles — the phrases before the ending may
+// come in any order.
+const plain = (s) => s.normalize("NFKC")
+  .replace(/[\s、。，．,.?？!！「」・]/g, "")
+  .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+
+function reads(tokens, order, text) {
+  let ends = new Set([0]);
+  for (const i of order) {
+    const forms = new Set([plain(reading(tokens[i].jp)), plain(surface(tokens[i].jp))]);
+    const next = new Set();
+    for (const at of ends) for (const f of forms) if (text.startsWith(f, at)) next.add(at + f.length);
+    if (!next.size) return false;
+    ends = next;
+  }
+  return ends.has(text.length);
+}
+
+const orders = (groups) => (groups.length <= 1 ? [groups]
+  : groups.flatMap((g, i) => orders(groups.filter((_, j) => j !== i)).map((rest) => [g, ...rest])));
+
+export function checkTyped(tokens, typed) {
+  const text = plain(typed);
+  if (reads(tokens, tokens.map((_, i) => i), text)) return { correct: true, exact: true };
+  const { phrases, tail } = structure(tokens);
+  const filled = phrases.filter((g) => g.length);
+  if (filled.length > 5) return { correct: false };
+  const ok = orders(filled).some((o) => reads(tokens, [...o.flat(), ...tail], text));
+  return ok ? { correct: true, exact: false } : { correct: false };
+}

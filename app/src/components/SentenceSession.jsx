@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AskTutor from "./AskTutor.jsx";
 import Icon from "./Icon.jsx";
 import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import { PARTICLE_NOTES } from "../data/sentences.js";
-import { checkOrder, slowSpeechText, speechText } from "../lib/sentence.js";
+import { checkOrder, checkTyped, slowSpeechText, speechText } from "../lib/sentence.js";
+import { canRecord, cancelMic, startMic, stopMic } from "../lib/recorder.js";
+import { playClip } from "../lib/speech.js";
 import { shuffle, speak, stopSpeaking } from "../lib/srs.js";
 
 const KINDS = {
@@ -13,7 +15,7 @@ const KINDS = {
   build: { label: "BUILD", cls: "bg-violet-100 text-violet-700", prompt: "Build this in Japanese" },
   particle: { label: "PARTICLE", cls: "bg-amber-100 text-amber-700", prompt: "Which particle fits?" },
   dictation: { label: "LISTEN & BUILD", cls: "bg-emerald-100 text-emerald-700", prompt: "Build what you hear" },
-  say: { label: "SAY IT", cls: "bg-rose-100 text-rose-700", prompt: "Say this in Japanese, out loud" },
+  say: { label: "SAY IT", cls: "bg-rose-100 text-rose-700", prompt: "Say this in Japanese" },
 };
 
 const say = (s, slow) => (slow ? speak(slowSpeechText(s.tokens), 0.6) : speak(speechText(s.tokens)));
@@ -125,21 +127,91 @@ function ParticleExercise({ item, result, onAnswer, showRomaji }) {
 function SayExercise({ item, result, onAnswer, showRomaji }) {
   const { sentence } = item;
   const [revealed, setRevealed] = useState(!!result);
-  const reveal = () => { setRevealed(true); say(sentence); };
+  const [mic, setMic] = useState("off"); // off · on · denied
+  const [clip, setClip] = useState(null); // the learner's own recording (object URL)
+  const [typing, setTyping] = useState(result?.typed != null);
+  const [typed, setTyped] = useState(result?.typed ?? "");
+  const [empty, setEmpty] = useState(false);
+  const clipRef = useRef(null);
+  clipRef.current = clip;
+  useEffect(() => () => { cancelMic(); if (clipRef.current) URL.revokeObjectURL(clipRef.current); }, []);
+
+  const record = async () => {
+    if (mic === "on") { setClip(await stopMic()); setMic("off"); return; }
+    stopSpeaking();
+    if (clip) { URL.revokeObjectURL(clip); setClip(null); }
+    try { await startMic(); setMic("on"); } catch { setMic("denied"); }
+  };
+  // Your own voice first, then the model right after it.
+  const reveal = async () => {
+    const mine = mic === "on" ? await stopMic() : clip;
+    if (mic === "on") { setClip(mine); setMic("off"); }
+    setRevealed(true);
+    if (mine) playClip(mine, () => say(sentence));
+    else say(sentence);
+  };
+  const check = () => {
+    if (!typed.trim()) { setEmpty(true); return; }
+    onAnswer({ ...checkTyped(sentence.tokens, typed), typed });
+  };
+
+  if (typing) {
+    return (
+      <>
+        <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
+        <input
+          value={typed} onChange={(e) => { setTyped(e.target.value); setEmpty(false); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && !result) check(); }}
+          disabled={!!result} lang="ja" autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false}
+          placeholder="にほんごで…" aria-label="Your answer in Japanese"
+          className="w-full px-4 py-3.5 rounded-2xl border-2 border-stone-200 bg-white text-lg text-stone-800 text-center focus:border-stone-400 outline-none disabled:bg-stone-50"
+        />
+        {empty && <div className="text-sm text-rose-600">Type the sentence first.</div>}
+        {!result && (
+          <>
+            <button onClick={check} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium">Check</button>
+            <div className="text-xs text-stone-400 text-center">Use the Japanese keyboard. Kana is enough; kanji works too.</div>
+            <button onClick={() => { setTyping(false); setEmpty(false); }} className="text-sm text-stone-500 underline underline-offset-2">Say it instead</button>
+          </>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
       {!revealed ? (
         <>
-          <div className="w-full min-h-[4.5rem] flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-stone-200 text-sm text-stone-400">
-            <Icon name="mic" size={18} /> Say it first — then check
-          </div>
+          {canRecord() && mic !== "denied" ? (
+            <div className="w-full flex flex-col items-center gap-2 py-1">
+              <button onClick={record} aria-label={mic === "on" ? "Stop recording" : "Record yourself"}
+                className={`w-20 h-20 rounded-full flex items-center justify-center active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-500"}`}>
+                {mic === "on" ? <span className="w-6 h-6 rounded-md bg-white" /> : <Icon name="mic" size={34} />}
+              </button>
+              <div className="text-sm text-stone-500 text-center">
+                {mic === "on" ? "Recording… tap to stop" : clip ? "Recorded. Tap to record again." : "Say it out loud. Tap to record yourself."}
+              </div>
+            </div>
+          ) : (
+            <div className="w-full min-h-[4.5rem] flex items-center justify-center gap-2 px-3 rounded-2xl border-2 border-dashed border-stone-200 text-sm text-stone-400 text-center">
+              <Icon name="mic" size={18} className="shrink-0" /> {mic === "denied" ? "No microphone access. Say it out loud, then check." : "Say it first, then check"}
+            </div>
+          )}
           <button onClick={reveal} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium">Show the answer</button>
+          <button onClick={() => { cancelMic(); setMic("off"); stopSpeaking(); setTyping(true); }} className="text-sm text-stone-500 underline underline-offset-2">Type it instead</button>
         </>
       ) : (
         <>
           <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />
-          <AudioButtons sentence={sentence} />
+          <div className="flex items-center justify-center gap-3">
+            {clip && (
+              <button onClick={() => playClip(clip)} className="h-11 px-4 rounded-full bg-stone-100 text-stone-600 text-sm font-medium flex items-center gap-1.5 active:scale-95 transition">
+                <Icon name="mic" size={16} /> You
+              </button>
+            )}
+            <AudioButtons sentence={sentence} />
+          </div>
           {!result && (
             <>
               <div className="text-sm text-stone-500">Did you say it like this?</div>
