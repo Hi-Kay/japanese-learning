@@ -125,3 +125,13 @@ export function checkTyped(tokens, typed) {
   const ok = orders(filled).some((o) => reads(tokens, [...o.flat(), ...tail], text));
   return ok ? { correct: true, exact: false } : { correct: false };
 }
+
+
+// Lesson explanations mark Japanese examples worth hearing with braces:
+// "… right before ください: {コーヒーを二[ふた]つください} — two coffees, please."
+// → [{ text }, { text, example: true }, …]
+export const noteParts = (note) =>
+  note.split(/\{([^}]*)\}/).map((text, i) => ({ text, example: i % 2 === 1 })).filter((p) => p.text);
+export const noteExamples = (note) => noteParts(note).filter((p) => p.example).map((p) => surface(p.text));
+// Without the marks and readings, for the tutor.
+export const plainNote = (note) => noteParts(note).map((p) => surface(p.text)).join("");

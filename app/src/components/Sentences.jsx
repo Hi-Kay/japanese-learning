@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
+import Note from "./Note.jsx";
 import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
 import SentenceSession from "./SentenceSession.jsx";
@@ -325,7 +326,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
           <span className="text-xs text-stone-400">Lesson {l.index + 1}</span>
           <h2 className="text-2xl font-semibold text-stone-800 -mt-2">{l.title}</h2>
           <SentenceView tokens={formulaTokens(l.formula)} gloss={false} size="lg" />
-          <p className="text-sm text-stone-600 max-w-sm">{l.note}</p>
+          <p className={`text-sm text-stone-600 max-w-sm ${l.note.includes("{") ? "leading-loose" : ""}`}><Note text={l.note} /></p>
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
             {roles.map((r) => (
               <span key={r} className="flex items-center gap-1 text-[11px] text-stone-500"><span className={`w-2 h-2 rounded-full ${ROLES[r].dot}`} />{ROLES[r].name}: {hint(r)}</span>
@@ -343,7 +344,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
                 </button>
               ))}
             </div>
-            {l.box.notes.map((n) => <p key={n} className="text-sm text-stone-600 leading-relaxed"><Ruby jp={n} /></p>)}
+            {l.box.notes.map((n) => <p key={n} className={`text-sm text-stone-600 ${n.includes("{") ? "leading-loose" : "leading-relaxed"}`}><Note text={n} /></p>)}
           </div>
         )}
         {words.length > 0 && (

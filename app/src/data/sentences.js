@@ -138,28 +138,39 @@ const LESSON_DEFS = [
     ],
   },
   {
-    id: "kudasai", title: "Ask for things — ください", gist: "e.g. “Two beers, please.”",
+    id: "kudasai", title: "Ask for things — ください", gist: "e.g. “Water, please.”",
     formula: [["O", "X"], ["O", "を"], ["V", "ください"]],
-    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants. To say how many, put the number right before ください — see “How many” below.",
-    // Shown as an extra box on the lesson page; the numbers can be tapped to hear them.
-    box: {
-      title: "How many — counting things",
-      items: [["一[ひと]つ", "hitotsu", "1"], ["二[ふた]つ", "futatsu", "2"], ["三[みっ]つ", "mittsu", "3"], ["四[よっ]つ", "yottsu", "4"], ["五[いつ]つ", "itsutsu", "5"]],
-      notes: [
-        "These are Japanese's own numbers, made for counting things. The つ form works for almost anything you order or buy — coffee, beer, cake, tickets — so you don't have to think about what the thing is. They go up to 10 (十[とお]).",
-        "いち、に、さん are the other set of numbers. They're for prices, the time and phone numbers, and they go with special counting words — for example 本[ほん] for bottles: ビール二本[にほん]. You'll meet those later; for things, 〜つ is always understood and polite.",
-        "People are counted differently: 一人[ひとり] (one person), 二人[ふたり] (two people). At a restaurant: 二人[ふたり]です — “a table for two”.",
-        "The number comes after を, right before ください: コーヒーを二[ふた]つください.",
-      ],
-    },
+    note: "を (read “o”) marks the thing. ください = “please give me”. This one pattern gets you through cafés, shops and restaurants.",
+    // A third entry is a fixed sentence id: these sentences were added, or moved to the
+    // next lesson, after learners had progress stored under the ids by position.
     sentences: [
       ["mizu:O o:O kudasai:V", "Water, please."],
       ["koohii:O o:O kudasai:V", "Coffee, please."],
       ["kore:O o:O kudasai:V", "This one, please."],
       ["menyuu:O o:O kudasai:V", "The menu, please."],
-      ["biiru:O o:O futatsu:Q kudasai:V", "Two beers, please."],
-      ["ocha:O o:O hitotsu:Q kudasai:V", "One tea, please."],
-      ["koohii:O o:O mittsu:Q kudasai:V", "Three coffees, please."],
+      ["biiru:O o:O kudasai:V", "Beer, please.", "kudasai-beer"],
+      ["ocha:O o:O kudasai:V", "Tea, please.", "kudasai-tea"],
+    ],
+  },
+  {
+    id: "howmany", title: "Say how many — 一つ · 二つ", gist: "e.g. “Two beers, please.”",
+    formula: [["O", "X"], ["O", "を"], ["Q", "二つ"], ["V", "ください"]],
+    note: "To say how many, put the number right before ください: {コーヒーを二[ふた]つください} — two coffees, please.",
+    // Shown as an extra box on the lesson page; the numbers can be tapped to hear them.
+    box: {
+      title: "Counting things",
+      items: [["一[ひと]つ", "hitotsu", "1"], ["二[ふた]つ", "futatsu", "2"], ["三[みっ]つ", "mittsu", "3"], ["四[よっ]つ", "yottsu", "4"], ["五[いつ]つ", "itsutsu", "5"]],
+      notes: [
+        "These numbers work for almost anything you order or buy: coffee, beer, cake, tickets. You don't have to think about what the thing is.",
+      ],
+    },
+    sentences: [
+      ["biiru:O o:O futatsu:Q kudasai:V", "Two beers, please.", "kudasai-4"],
+      ["ocha:O o:O hitotsu:Q kudasai:V", "One tea, please.", "kudasai-5"],
+      ["koohii:O o:O mittsu:Q kudasai:V", "Three coffees, please.", "kudasai-6"],
+      ["kore:O o:O futatsu:Q kudasai:V", "Two of these, please."],
+      ["mizu:O o:O mittsu:Q kudasai:V", "Three waters, please."],
+      ["biiru:O o:O hitotsu:Q kudasai:V", "One beer, please."],
     ],
   },
   {
@@ -190,7 +201,7 @@ const LESSON_DEFS = [
   {
     id: "masen", title: "Say what you don't do — ません", gist: "e.g. “I don't eat meat.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ません"]],
-    note: "For “don't”, change ます to ません. Everything else stays the same. Great for food: 肉を食べません — I don't eat meat.",
+    note: "For “don't”, change ます to ません. Everything else stays the same. Great for food: {肉[にく]を食[た]べません} — I don't eat meat.",
     sentences: [
       ["watashi:T wa:T osake:O o:O nomimasen:V", "I don't drink alcohol."],
       ["niku:O o:O tabemasen:V", "I don't eat meat."],
@@ -216,7 +227,7 @@ const LESSON_DEFS = [
   {
     id: "de", title: "Say where you do it — で", gist: "e.g. “I eat at a restaurant.”",
     formula: [["L", "place"], ["L", "で"], ["O", "X"], ["O", "を"], ["V", "verb"]],
-    note: "で marks where an action happens: “at / in”. Compare 駅に行きます (go TO the station) with 駅で飲みます (drink AT the station).",
+    note: "で marks where an action happens: “at / in”. Compare {駅[えき]に行[い]きます} (go TO the station) with {駅[えき]で飲[の]みます} (drink AT the station).",
     sentences: [
       ["ie:L de:L nihongo:O o:O benkyou:V", "I study Japanese at home."],
       ["konbini:L de:L mizu:O o:O kaimasu:V", "I buy water at the convenience store."],
@@ -242,7 +253,7 @@ const LESSON_DEFS = [
   {
     id: "suki", title: "Say what you like — 好きです", gist: "e.g. “I like sushi.”",
     formula: [["T", "X"], ["T", "は"], ["S", "Y"], ["S", "が"], ["V", "好きです"]],
-    note: "What you like takes が, not を. 好きです literally means “is liked”. Not liked: 好きじゃないです.",
+    note: "What you like takes が, not を. 好きです literally means “is liked”. Not liked: {好[す]きじゃないです}.",
     sentences: [
       ["watashi:T wa:T sushi:S ga:S suki:V desu:V", "I like sushi."],
       ["nihon:S ga:S suki:V desu:V", "I like Japan."],
@@ -254,7 +265,7 @@ const LESSON_DEFS = [
   {
     id: "tai", title: "Say what you want to do — たいです", gist: "e.g. “I want to go to Japan.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-たい"], ["V", "です"]],
-    note: "Swap ます for たいです to say “want to”: 行きます → 行きたいです.",
+    note: "Swap ます for たいです to say “want to”: {行[い]きます} → {行[い]きたいです}.",
     sentences: [
       ["nihon:L ni:L ikitai:V desu:V", "I want to go to Japan."],
       ["sushi:O o:O tabetai:V desu:V", "I want to eat sushi."],
@@ -266,7 +277,7 @@ const LESSON_DEFS = [
   {
     id: "mashita", title: "Say what you did — ました", gist: "e.g. “Yesterday I ate sushi.”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ました"]],
-    note: "Swap ます for ました for the past: 行きます → 行きました. Add か to ask: 飲みましたか — did you drink?",
+    note: "Swap ます for ました for the past: {行[い]きます} → {行[い]きました}. Add か to ask: {飲[の]みましたか} — did you drink?",
     sentences: [
       ["kinou:M, sushi:O o:O tabemashita:V", "Yesterday I ate sushi."],
       ["toukyou:L ni:L ikimashita:V", "I went to Tokyo."],
@@ -278,7 +289,7 @@ const LESSON_DEFS = [
   {
     id: "no", title: "Say whose it is — の", gist: "e.g. “This is my book.”",
     formula: [["T", "X"], ["T", "の"], ["T", "Y"]],
-    note: "の links two nouns: the first one describes the second. 私の本 = my book, 日本語の本 = a Japanese book, 友達の家 = my friend's house. The main word always comes last.",
+    note: "の links two nouns: the first one describes the second. {私[わたし]の本[ほん]} = my book, {日本語[にほんご]の本[ほん]} = a Japanese book, {友達[ともだち]の家[いえ]} = my friend's house. The main word always comes last.",
     sentences: [
       ["kore:T wa:T watashi:V no:V hon:V desu:V", "This is my book."],
       ["kore:T wa:T dare:V no:V koohii:V desu:V ka:V", "Whose coffee is this?"],
@@ -291,7 +302,7 @@ const LESSON_DEFS = [
   {
     id: "mo", title: "Say “me too” — も", gist: "e.g. “I'm going too.”",
     formula: [["T", "X"], ["T", "も"], ["V", "…"]],
-    note: "も means “also / too”. It replaces は, が or を — never both together: 私は行きます → 私も行きます.",
+    note: "も means “also / too”. It replaces は, が or を — never both together: {私[わたし]は行[い]きます} → {私[わたし]も行[い]きます}.",
     sentences: [
       ["watashi:T mo:T ikimasu:V", "I'm going too."],
       ["watashi:T mo:T gakusei:V desu:V", "I'm a student too."],
@@ -304,7 +315,7 @@ const LESSON_DEFS = [
   {
     id: "to", title: "Say “and” and “with” — と", gist: "e.g. “Bread and water.” “With a friend.”",
     formula: [["O", "X"], ["O", "と"], ["O", "Y"]],
-    note: "と between two things means “and”: パンと水. After a person it means “with”: 友達と = with a friend. It only joins nouns — never whole sentences.",
+    note: "と between two things means “and”: {パンと水[みず]}. After a person it means “with”: {友達[ともだち]と} = with a friend. It only joins nouns — never whole sentences.",
     sentences: [
       ["pan:O and:O mizu:O o:O kaimasu:V", "I buy bread and water."],
       ["biiru:O and:O sushi:O o:O kudasai:V", "Beer and sushi, please."],
@@ -330,7 +341,7 @@ const LESSON_DEFS = [
   {
     id: "adjnoun", title: "Describe a thing — おいしい寿司", gist: "e.g. “I ate delicious sushi.”",
     formula: [["O", "〜い"], ["O", "X"], ["O", "を"], ["V", "verb"]],
-    note: "A describing word goes directly before its noun — nothing in between: おいしい寿司 = delicious sushi, 新しい本 = a new book. The two then move as one block.",
+    note: "A describing word goes directly before its noun — nothing in between: {おいしい寿司[すし]} = delicious sushi, {新[あたら]しい本[ほん]} = a new book. The two then move as one block.",
     sentences: [
       ["oishii:O sushi:O o:O tabemashita:V", "I ate delicious sushi."],
       ["yasui:O koohii:O o:O kaimasu:V", "I buy cheap coffee."],
@@ -344,15 +355,16 @@ const LESSON_DEFS = [
   {
     id: "time", title: "Say when — 〜時に", gist: "e.g. “I get up at seven.”",
     formula: [["M", "time"], ["M", "に"], ["V", "verb"]],
-    note: "A clock time is the number + 時 (じ). It takes に: 七時に = at seven. Words like 明日 or 毎日 take no particle.",
+    note: "A clock time is the number + 時 (じ). It takes に: {七時[しちじ]に} = at seven. Words like 明日 or 毎日 take no particle.",
     box: {
       title: "The hours",
       items: [["一時[いちじ]", "ichiji", "1"], ["二時[にじ]", "niji", "2"], ["三時[さんじ]", "sanji", "3"], ["四時[よじ]", "yoji", "4"], ["五時[ごじ]", "goji", "5"], ["六時[ろくじ]", "rokuji", "6"],
         ["七時[しちじ]", "shichiji", "7"], ["八時[はちじ]", "hachiji", "8"], ["九時[くじ]", "kuji", "9"], ["十時[じゅうじ]", "juuji", "10"], ["十一時[じゅういちじ]", "juuichiji", "11"], ["十二時[じゅうにじ]", "juuniji", "12"]],
       notes: [
+        "Clock times use the other set of numbers — いち, に, さん … — not 一[ひと]つ, 二[ふた]つ, which are only for counting things.",
         "Three hours are special: 四時[よじ] (not “yonji”), 七時[しちじ] and 九時[くじ] (not “kyuuji”).",
-        "Half past: add 半[はん] — 三時半[さんじはん] is half past three.",
-        "To ask: 何時[なんじ]ですか — what time is it?",
+        "Half past: add 半[はん] — {三時半[さんじはん]} is half past three.",
+        "To ask: {何時[なんじ]ですか} — what time is it?",
       ],
     },
     sentences: [
@@ -368,7 +380,7 @@ const LESSON_DEFS = [
   {
     id: "karamade", title: "Say from where, until when — から · まで", gist: "e.g. “I'm from Germany.”",
     formula: [["M", "X"], ["M", "から"], ["M", "Y"], ["M", "まで"]],
-    note: "から = from, まで = until / as far as. They work for places and for times. ドイツから来ました — “I came from Germany” — is how you say where you're from.",
+    note: "から = from, まで = until / as far as. They work for places and for times. {ドイツから来[き]ました} — “I came from Germany” — is how you say where you're from.",
     sentences: [
       ["doitsu:L kara:L kimashita:V", "I'm from Germany."],
       ["doko:L kara:L kimashita:V ka:V", "Where are you from?"],
@@ -381,7 +393,7 @@ const LESSON_DEFS = [
   {
     id: "mashou", title: "Suggest something — ましょう · ませんか", gist: "e.g. “Let's go.” “Shall we have a coffee?”",
     formula: [["O", "X"], ["O", "を"], ["V", "verb-ましょう"]],
-    note: "Swap ます for ましょう to say “let's”: 行きます → 行きましょう. To invite someone politely, ask with ませんか — literally “won't you…?”: コーヒーを飲みませんか.",
+    note: "Swap ます for ましょう to say “let's”: {行[い]きます} → {行[い]きましょう}. To invite someone politely, ask with ませんか — literally “won't you…?”: {コーヒーを飲[の]みませんか}.",
     sentences: [
       ["ikimashou:V", "Let's go."],
       ["issho:Q tabemashou:V", "Let's eat together."],
@@ -404,8 +416,8 @@ function parseToken(spec) {
 export const LESSONS = LESSON_DEFS.map((l, li) => ({
   ...l,
   index: li,
-  sentences: l.sentences.map(([spec, en], si) => ({
-    id: `${l.id}-${si}`,
+  sentences: l.sentences.map(([spec, en, id], si) => ({
+    id: id ?? `${l.id}-${si}`,
     lesson: li,
     en,
     tokens: spec.split(/\s+/).map(parseToken),

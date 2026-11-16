@@ -3,7 +3,7 @@ import Icon from "./Icon.jsx";
 import SentenceView from "./SentenceView.jsx";
 import { Message, ToolChips } from "./TutorText.jsx";
 import { LESSONS, ROLES } from "../data/sentences.js";
-import { surface } from "../lib/sentence.js";
+import { plainNote, surface } from "../lib/sentence.js";
 import { runTutorTurn } from "../lib/tutor.js";
 import { tutorAccess } from "../lib/tutorStore.js";
 
@@ -47,7 +47,7 @@ function exerciseContext(item, result) {
     `[Context, not shown to the learner: they are doing a sentence exercise in the app and tapped "Ask the tutor".`,
     `Answer their question about this exercise. Keep it short (a few lines), simple and beginner-friendly, and explain with`,
     `the grammar of their lessons. Don't quiz them unless they ask.]`,
-    `Lesson ${lesson.index + 1}: ${lesson.title}. Lesson note: ${lesson.note}`,
+    `Lesson ${lesson.index + 1}: ${lesson.title}. Lesson note: ${plainNote(lesson.note)}`,
     `Exercise: ${KIND_NAMES[item.type]}.`,
     `English: ${s.en}`,
     `Correct Japanese: ${s.tokens.map(tokenText).join("")}。`,

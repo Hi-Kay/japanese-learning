@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LESSONS, newWordsIn } from "../src/data/sentences.js";
-import { parseFurigana, slowSpeechText, speechText, surface } from "../src/lib/sentence.js";
+import { noteExamples, parseFurigana, slowSpeechText, speechText, surface } from "../src/lib/sentence.js";
 import { HIRAGANA, KATAKANA } from "../src/data/kana.js";
 import { KANA_EXTRA } from "../src/data/kanaExtra.js";
 import { ALL_VOCAB } from "../src/data/vocab.js";
@@ -46,6 +46,7 @@ for (const l of LESSONS) {
   }
   for (const w of newWordsIn(l)) add(surface(w.jp));
   for (const [jp] of l.box?.items ?? []) add(readingOf(jp));
+  for (const note of [l.note, ...(l.box?.notes ?? [])]) for (const ex of noteExamples(note)) add(ex);
 }
 // A single katakana is the same sound as its hiragana, and the voice misreads some of
 // them on their own (ダ, デ as the letter "D", シュ whispered): they share the hiragana's file.

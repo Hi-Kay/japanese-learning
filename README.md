@@ -20,7 +20,7 @@ The Library has four sections:
 
 | Section | Content |
 | --- | --- |
-| **Lessons** | 20 lessons, one core sentence pattern each (120 sentences, ~100 useful words) |
+| **Lessons** | 21 lessons, one core sentence pattern each (125 sentences, ~100 useful words) |
 | **Kana** | Hiragana (46) and Katakana (46) in gojūon rows of five, plus dakuten (が), handakuten (ぱ), yōon (きゃ), sokuon (っ) and chōon (long vowels) |
 | **Words** | 8 vocabulary categories (175 words/phrases) plus your own saved words — optional |
 | **Kanji** | Kanji N5 (180 characters) and RTK 1–200, grouped into stages of 20 — optional |
@@ -29,7 +29,7 @@ The **Tutor** is an AI tutor (Claude or Mistral, with your own key) you can writ
 speak to — see [AI Tutor](#ai-tutor).
 
 Sentence lessons, in order: X is Y (は…です) · Questions & "not" (か, じゃないです) ·
-Asking for things (をください) · Doing things (を + verb) · Topic + object + verb ·
+Asking for things (をください) · Saying how many (一つ, 二つ) · Doing things (を + verb) · Topic + object + verb ·
 Not doing (ません) · Going somewhere (に) · Where it happens (で) · There is / I have
 (があります) · Likes (が好きです) · Wanting (たいです) · The past (ました) · Whose it is (の) ·
 "Me too" (も) · "And" and "with" (と) · What it's like (〜いです) · Describing a thing
