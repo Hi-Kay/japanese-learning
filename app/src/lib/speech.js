@@ -17,9 +17,9 @@ const loaded = new Map(); // recording id → object URL
 let unlocked = false;
 let playToken = 0;
 
-async function playRecording(id, playbackRate, fallback) {
+async function playRecording(id, playbackRate, fallback, then) {
   const token = ++playToken;
-  player.onended = null;
+  player.onended = then ? () => { player.onended = null; if (token === playToken) then(); } : null;
   if (!unlocked) {
     // Called inside the tap, before any waiting, so the element is allowed to play later.
     player.src = SILENCE;
@@ -120,27 +120,37 @@ function makeUtterance(text, rate, { useVoice = true } = {}) {
   return u;
 }
 
+let synthTurn = 0;  // counts utterances and stops, so an interrupted one can tell
 let lastStart = 0; // when an utterance last actually started playing
 let lastStop = 0;  // when stopSpeaking() last cancelled something
 
-export function speak(text, rate = 0.85) {
+// `voice: "b"` is the second speaker of a dialogue: its own recording when there is one,
+// otherwise the built-in voice at a lower pitch. `then` runs when the sound has finished
+// (not when it was interrupted), so two lines can be played one after the other.
+export function speak(text, rate = 0.85, { voice, then } = {}) {
   const slow = rate <= 0.6;
+  const key = voice === "b" ? `b:${text}` : text;
   // Sentences have their own slow take (with pauses); other recordings are slowed down.
-  const id = player && ((slow && RECORDED[`slow:${text}`]) || RECORDED[text]);
+  const id = player && ((slow && RECORDED[`slow:${key}`]) || RECORDED[key]);
+  const synthOpts = { pitch: voice === "b" ? 0.6 : 1, then };
   if (id) {
     stopSynth();
-    playRecording(id, slow && !RECORDED[`slow:${text}`] ? 0.7 : 1, () => speakSynth(SAY_AS[text] ?? text, rate));
+    playRecording(id, slow && !RECORDED[`slow:${key}`] ? 0.7 : 1, () => speakSynth(SAY_AS[text] ?? text, rate, synthOpts), then);
     return;
   }
   stopRecording();
-  speakSynth(SAY_AS[text] ?? text, rate);
+  speakSynth(SAY_AS[text] ?? text, rate, synthOpts);
 }
 
-function speakSynth(text, rate) {
+function speakSynth(text, rate, { pitch = 1, then } = {}) {
   if (!synth) return;
   unstick();
   const u = makeUtterance(text, rate);
+  u.pitch = pitch;
   u.onstart = () => { lastStart = Date.now(); };
+  // A cancelled utterance may still report "end": only the latest one may continue.
+  const turn = ++synthTurn;
+  if (then) u.onend = () => { if (turn === synthTurn) then(); };
   clearTimeout(delayed);
   const busy = synth.speaking || synth.pending;
   const justStopped = Date.now() - lastStop < 150;
@@ -167,6 +177,7 @@ export function stopSpeaking() {
 
 function stopSynth() {
   if (!synth) return;
+  synthTurn++;
   clearTimeout(delayed);
   if (synth.speaking || synth.pending) {
     synth.cancel();

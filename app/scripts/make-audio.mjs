@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LESSONS, newWordsIn } from "../src/data/sentences.js";
+import { DIALOGUES } from "../src/data/dialogues.js";
 import { noteExamples, parseFurigana, slowSpeechText, speechText, surface } from "../src/lib/sentence.js";
 import { HIRAGANA, KATAKANA } from "../src/data/kana.js";
 import { KANA_EXTRA } from "../src/data/kanaExtra.js";
@@ -26,16 +27,19 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public/audio");
 const MANIFEST = join(ROOT, "src/data/audio.json");
 const VOICE = "ja-JP-NanamiNeural";
+// The other speaker in the mini-dialogues (the one who asks). Used nowhere else.
+const VOICE_B = "ja-JP-KeitaNeural";
 // A little slower than the voice's natural pace; the "slow" button gets its own, slower take.
 const RATE = "-10%";
 const SLOW_RATE = "-30%";
 
-// key = what the app passes to speak(); a leading "slow:" marks the slow take.
+// key = what the app passes to speak(); a leading "slow:" marks the slow take, a
+// leading "b:" the second voice.
 const items = new Map();
-const add = (text, slow = false) => {
+const add = (text, slow = false, b = false) => {
   if (!text) return;
-  const key = (slow ? "slow:" : "") + text;
-  if (!items.has(key)) items.set(key, { text, slow });
+  const key = (slow ? "slow:" : "") + (b ? "b:" : "") + text;
+  if (!items.has(key)) items.set(key, { text, slow, b });
 };
 const readingOf = (jp) => parseFurigana(jp).map((x) => x.rt ?? x.text).join("");
 
@@ -47,6 +51,11 @@ for (const l of LESSONS) {
   for (const w of newWordsIn(l)) add(surface(w.jp));
   for (const [jp] of l.box?.items ?? []) add(readingOf(jp));
   for (const note of [l.note, ...(l.box?.notes ?? [])]) for (const ex of noteExamples(note)) add(ex);
+}
+for (const d of DIALOGUES) {
+  add(speechText(d.dialogue.ask.tokens), false, true);
+  add(speechText(d.tokens));
+  add(slowSpeechText(d.tokens), true);
 }
 // A single katakana is the same sound as its hiragana, and the voice misreads some of
 // them on their own (ダ, デ as the letter "D", シュ whispered): they share the hiragana's file.
@@ -82,8 +91,8 @@ const KEY = process.env.AZURE_SPEECH_KEY;
 const REGION = process.env.AZURE_SPEECH_REGION;
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const ssml = ({ text, slow }) =>
-  `<speak version="1.0" xml:lang="ja-JP"><voice name="${VOICE}"><prosody rate="${slow ? SLOW_RATE : RATE}">${esc(SAY_AS[text] ?? text)}</prosody></voice></speak>`;
+const ssml = ({ text, slow, b }) =>
+  `<speak version="1.0" xml:lang="ja-JP"><voice name="${b ? VOICE_B : VOICE}"><prosody rate="${slow ? SLOW_RATE : RATE}">${esc(SAY_AS[text] ?? text)}</prosody></voice></speak>`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // The voice endpoint wants a short-lived token (valid 10 minutes), fetched with the key.

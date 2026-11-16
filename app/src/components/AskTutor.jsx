@@ -36,6 +36,8 @@ const KIND_NAMES = {
   particle: "Fill in the missing particle",
   say: "Say the Japanese sentence aloud from memory, given the English, then compare with the answer and rate yourself",
   dictation: "Listen and build the sentence from word tiles (two extra tiles don't belong in it)",
+  dlisten: "Listen to a two-line dialogue (a question and its answer) and pick the meaning of the answer",
+  reply: "Hear a question and say the answer aloud in Japanese (the English of the answer is given), then compare and rate yourself",
 };
 
 const tokenText = (t) => t.jp + (t.comma ? "、" : "");
@@ -43,7 +45,7 @@ const tokenText = (t) => t.jp + (t.comma ? "、" : "");
 // What the learner answered, as plain text.
 function yourAnswer(item, result) {
   if (result.typed != null) return result.typed;
-  if (item.type === "listen") return result.picked;
+  if (item.type === "listen" || item.type === "dlisten") return result.picked;
   if (item.type === "particle") return item.options.find((p) => p.id === result.picked)?.jp ?? result.picked;
   const tiles = [...item.sentence.tokens, ...(item.extra ?? [])];
   return result.picked.map((i) => surface(tiles[i].jp)).join(" ");
@@ -51,8 +53,8 @@ function yourAnswer(item, result) {
 
 function learnerAnswer(item, result) {
   if (result.typed != null) return `typed “${result.typed}” from memory`;
-  if (item.type === "say") return `said it aloud and judged it ${result.correct ? "right" : "not right yet"} (the app can't hear it)`;
-  if (item.type === "listen") return `picked the meaning “${yourAnswer(item, result)}”`;
+  if (item.type === "say" || item.type === "reply") return `said it aloud and judged it ${result.correct ? "right" : "not right yet"} (the app can't hear it)`;
+  if (item.type === "listen" || item.type === "dlisten") return `picked the meaning “${yourAnswer(item, result)}”`;
   if (item.type === "particle") return `put ${yourAnswer(item, result)} in the gap where ${item.sentence.tokens[item.blank].jp} goes`;
   return `built ${yourAnswer(item, result)}`;
 }
@@ -67,11 +69,12 @@ function exerciseContext(item, result) {
     `the grammar of their lessons. Don't quiz them unless they ask.]`,
     `Lesson ${lesson.index + 1}: ${lesson.title}. Lesson note: ${plainNote(lesson.note)}`,
     `Exercise: ${KIND_NAMES[item.type]}.`,
+    s.dialogue && `Dialogue (${s.dialogue.scene}). Question asked: ${s.dialogue.ask.tokens.map(tokenText).join("")}。 (${s.dialogue.ask.en}) The learner gives the answer below.`,
     `English: ${s.en}`,
     `Correct Japanese: ${s.tokens.map(tokenText).join("")}。`,
     `Word by word: ${s.tokens.map((t) => `${t.jp} = ${t.particle ? "particle" : t.en} (${ROLES[t.role].name.toLowerCase()})`).join(", ")}`,
     `The learner ${learnerAnswer(item, result)} — ${verdict}.`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function suggestions(item, result) {
@@ -93,7 +96,7 @@ function sentenceTopic(item, result, showRomaji) {
       <>
         <SentenceView tokens={item.sentence.tokens} showRomaji={showRomaji} size="sm" />
         <span className="text-xs text-stone-500">{item.sentence.en}</span>
-        {!result.correct && (item.type !== "say" || result.typed != null) && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
+        {!result.correct && ((item.type !== "say" && item.type !== "reply") || result.typed != null) && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
       </>
     ),
   };

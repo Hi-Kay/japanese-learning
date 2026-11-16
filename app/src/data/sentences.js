@@ -413,6 +413,8 @@ function parseToken(spec) {
   return { ...w, role, comma };
 }
 
+export const tokensOf = (spec) => spec.split(/\s+/).map(parseToken);
+
 export const LESSONS = LESSON_DEFS.map((l, li) => ({
   ...l,
   index: li,
@@ -420,7 +422,7 @@ export const LESSONS = LESSON_DEFS.map((l, li) => ({
     id: id ?? `${l.id}-${si}`,
     lesson: li,
     en,
-    tokens: spec.split(/\s+/).map(parseToken),
+    tokens: tokensOf(spec),
   })),
 }));
 

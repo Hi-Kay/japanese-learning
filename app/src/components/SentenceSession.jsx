@@ -16,9 +16,36 @@ const KINDS = {
   particle: { label: "PARTICLE", cls: "bg-amber-100 text-amber-700", prompt: "Which particle fits?" },
   dictation: { label: "LISTEN & BUILD", cls: "bg-emerald-100 text-emerald-700", prompt: "Build what you hear" },
   say: { label: "SAY IT", cls: "bg-rose-100 text-rose-700", prompt: "Say this in Japanese" },
+  dlisten: { label: "DIALOGUE", cls: "bg-sky-100 text-sky-700", prompt: "Listen. What is the answer?" },
+  reply: { label: "DIALOGUE", cls: "bg-rose-100 text-rose-700", prompt: "Answer the question in Japanese" },
 };
 
 const say = (s, slow) => (slow ? speak(slowSpeechText(s.tokens), 0.6) : speak(speechText(s.tokens)));
+
+// A dialogue's question is spoken by the second voice; `then` runs after it.
+const ask = (s, then) => speak(speechText(s.dialogue.ask.tokens), 0.85, { voice: "b", then });
+
+// The question of a dialogue: where it happens, a button to hear it, and — once `show`
+// is set — its text. Hidden at first, because understanding it by ear is the exercise.
+function AskLine({ sentence, show, showRomaji, hint = "Listen to the question" }) {
+  const { scene, ask: q } = sentence.dialogue;
+  return (
+    <div className="w-full flex flex-col gap-1.5">
+      <span className="text-xs text-stone-400 text-center">{scene}</span>
+      <div className="w-full flex items-center gap-3 rounded-2xl bg-white border border-stone-200 px-3 py-2.5">
+        <button onClick={() => ask(sentence)} className="w-11 h-11 shrink-0 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center active:scale-95 transition" title="Hear the question" aria-label="Hear the question"><Icon name="volume" size={20} /></button>
+        {show ? (
+          <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
+            <SentenceView tokens={q.tokens} showRomaji={showRomaji} gloss={false} size="sm" />
+            <span className="text-xs text-stone-500">{q.en}</span>
+          </div>
+        ) : (
+          <span className="text-sm text-stone-400">{hint}</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function AudioButtons({ sentence, big }) {
   return (
@@ -55,6 +82,40 @@ function ListenExercise({ item, result, onAnswer }) {
       </div>
     </>
   );
+}
+
+// A new dialogue, heard as a whole: the question, then the answer. Which answer was it?
+function DialogueListenExercise({ item, result, onAnswer, showRomaji }) {
+  const { sentence, options } = item;
+  const both = () => ask(sentence, () => say(sentence));
+  useEffect(() => { both(); }, [item.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      {result ? <AskLine sentence={sentence} show showRomaji={showRomaji} /> : (
+        <>
+          <span className="text-xs text-stone-400 -mb-2">{sentence.dialogue.scene}</span>
+          <button onClick={both} className="w-20 h-20 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center active:scale-95 transition" title="Play the dialogue" aria-label="Play the dialogue"><Icon name="volume" size={34} /></button>
+        </>
+      )}
+      <div className="w-full flex flex-col gap-2">
+        {options.map((o) => {
+          const plain = "bg-white border-stone-200 text-stone-700";
+          const state = !result ? plain : o === sentence.en ? "bg-emerald-50 border-emerald-400 text-emerald-800" : o === result.picked ? "bg-red-50 border-red-300 text-red-700" : `${plain} opacity-50`;
+          return (
+            <button key={o} disabled={!!result} onClick={() => onAnswer({ correct: o === sentence.en, picked: o })} className={`w-full py-3 px-4 rounded-2xl border-2 text-left transition ${state}`}>{o}</button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// Answering in a dialogue: hear the question, then say the answer — the Say it exercise
+// with a question in front of it.
+function ReplyExercise(props) {
+  const { item } = props;
+  useEffect(() => { ask(item.sentence); }, [item.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <SayExercise {...props} lead={(show) => <AskLine sentence={item.sentence} show={show} showRomaji={props.showRomaji} />} />;
 }
 
 function BuildExercise({ item, result, onAnswer, showRomaji }) {
@@ -124,7 +185,8 @@ function ParticleExercise({ item, result, onAnswer, showRomaji }) {
 // Producing the sentence from nothing: see the English, say the Japanese aloud, then
 // look at the answer, hear it, and judge yourself. No tiles to recognize — the words
 // have to come from memory. The rating moves straight on to the next exercise.
-function SayExercise({ item, result, onAnswer, showRomaji }) {
+// `lead` (optional) renders something above it, and is told when the answer is shown.
+function SayExercise({ item, result, onAnswer, showRomaji, lead }) {
   const { sentence } = item;
   const [revealed, setRevealed] = useState(!!result);
   const [mic, setMic] = useState("off"); // off · on · denied
@@ -200,6 +262,7 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
   if (typing) {
     return (
       <>
+        {lead?.(!!result)}
         <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
         <input
           value={typed} onChange={(e) => { setTyped(e.target.value); setEmpty(false); }}
@@ -223,6 +286,7 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
   const quit = (correct) => { cancelMic(); onAnswer({ correct }, true); };
   return (
     <>
+      {lead?.(revealed)}
       <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
       {revealed && <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />}
       <div className="w-full rounded-2xl bg-white border border-stone-200 px-4 py-2.5 flex flex-col gap-2">
@@ -327,7 +391,7 @@ export default function SentenceSession({ items, saved, hasLesson, showRomaji, t
       if (!r.correct) {
         const again = { ...item, key: `${item.key}-again`, retry: true };
         if (item.shuffled) again.shuffled = shuffle(item.shuffled);
-        if (item.type === "listen") again.options = shuffle(item.options);
+        if (item.type === "listen" || item.type === "dlisten") again.options = shuffle(item.options);
         setQueue((q) => [...q, again]);
         length++;
       }
@@ -374,6 +438,8 @@ export default function SentenceSession({ items, saved, hasLesson, showRomaji, t
         {(item.type === "build" || item.type === "dictation") && <BuildExercise {...props} />}
         {item.type === "particle" && <ParticleExercise {...props} />}
         {item.type === "say" && <SayExercise {...props} />}
+        {item.type === "dlisten" && <DialogueListenExercise {...props} />}
+        {item.type === "reply" && <ReplyExercise {...props} />}
       </div>
       {result && <Feedback key={`fb-${item.key}`} item={item} result={result} showRomaji={showRomaji} onContinue={next} continueLabel={peek != null ? "Back to where I was" : "Continue"} onAsk={() => setAsking(true)} />}
       {result && asking && <AskTutor item={item} result={result} app={tutorApp} showRomaji={showRomaji} onClose={() => setAsking(false)} />}

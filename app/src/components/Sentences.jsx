@@ -6,6 +6,7 @@ import SentenceView from "./SentenceView.jsx";
 import SentenceSession from "./SentenceSession.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
 import { ALL_SENTENCES, LESSONS, ROLES, newWordsIn, particlesKnownBy } from "../data/sentences.js";
+import { DIALOGUES } from "../data/dialogues.js";
 import { parseFurigana, speechText, surface } from "../lib/sentence.js";
 import { shuffle, speak } from "../lib/srs.js";
 import { LEARNED, countsForProgress, progressStatus, statusLine, whenText } from "../lib/progressStatus.js";
@@ -17,6 +18,8 @@ const keyOf = (s) => `s:${s.id}`;
 // Spoken from the kana: the voice misreads some counting words (一人, 十) on their own.
 const readingOf = (jp) => parseFurigana(jp).map((x) => x.rt ?? x.text).join("");
 const REVIEW_SIZE = 12;
+// Everything that comes back in reviews: the lessons' sentences and the mini-dialogues.
+const REVIEWABLE = [...ALL_SENTENCES, ...DIALOGUES];
 
 const PARTICLE_CHARS = new Set(["は", "が", "を", "に", "で", "か", "の", "も", "と", "から", "まで"]);
 const ALSO_FITS = { wa: ["mo"], ga: ["mo"], o: ["mo"], mo: ["wa", "ga", "o"], ni: ["kara", "made"], kara: ["ni"], made: ["ni"] };
@@ -63,7 +66,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
   const startOfDay = new Date().setHours(0, 0, 0, 0);
   const practicedToday = (s) => (progress[keyOf(s)]?.seen ?? 0) >= startOfDay;
   const now = Date.now();
-  const due = ALL_SENTENCES.filter((s) => started(s) && progress[keyOf(s)].due <= now)
+  const due = REVIEWABLE.filter((s) => started(s) && progress[keyOf(s)].due <= now)
     .sort((a, b) => progress[keyOf(a)].due - progress[keyOf(b)].due);
   const frontier = Math.max(upNext.index, ...ALL_SENTENCES.filter(started).map((s) => s.lesson));
 
@@ -100,6 +103,13 @@ export default function Sentences({ section = "today", progress, recordResult, s
       it.extra = extraTiles(s, particles);
       it.shuffled = shuffleApart([...s.tokens, ...it.extra].map((_, i) => i));
     }
+    if (type === "dlisten") {
+      // Wrong answers that could be answers too: statements from the same lesson first,
+      // then other dialogues' answers.
+      const others = [...shuffle(LESSONS[s.lesson].sentences), ...shuffle(DIALOGUES)].map((o) => o.en)
+        .filter((en, i, a) => en !== s.en && !en.endsWith("?") && a.indexOf(en) === i).slice(0, 2);
+      it.options = shuffle([s.en, ...others]);
+    }
     if (type === "listen") {
       const pool = ALL_SENTENCES.filter((o) => o.lesson <= frontier && o.en !== s.en);
       const sameLesson = shuffle(pool.filter((o) => o.lesson === s.lesson));
@@ -110,7 +120,10 @@ export default function Sentences({ section = "today", progress, recordResult, s
   };
   // A new sentence is heard and built in its first session; from the first review on
   // it has to be said from memory, with one round of building it by ear in between.
-  const typeFor = (s) => ["listen", "particle", "say", "dictation"][boxOf(s)] ?? "say";
+  // A dialogue is always answered aloud.
+  const typeFor = (s) => (s.dialogue ? "reply" : ["listen", "particle", "say", "dictation"][boxOf(s)] ?? "say");
+  // A dialogue met for the first time is heard as a whole, then answered.
+  const dialogueItems = (d) => (started(d) ? [makeItem(d, "reply")] : [makeItem(d, "dlisten"), makeItem(d, "reply")]);
 
   const startLesson = (l) => {
     paused = null;
@@ -128,7 +141,9 @@ export default function Sentences({ section = "today", progress, recordResult, s
     // New sentences are met twice: first by ear, then built — receptive before productive.
     const first = shuffle(fresh.map((s) => makeItem(s, "listen", particles)));
     const second = shuffle([...fresh.map((s) => makeItem(s, "build", particles)), ...seen.map((s) => makeItem(s, typeFor(s), particles))]);
-    setItems([...first, ...second]);
+    // Practicing a learned lesson again ends with its dialogues.
+    const talk = !fresh.length && lessonLearned(l) ? DIALOGUES.filter((d) => d.lesson === l.index).flatMap(dialogueItems) : [];
+    setItems([...first, ...second, ...talk]);
     setLessonIdx(l.index);
     setView("session");
   };
@@ -137,7 +152,9 @@ export default function Sentences({ section = "today", progress, recordResult, s
     paused = null;
     setSaved(null);
     const particles = particlesKnownBy(frontier);
-    setItems(list.slice(0, REVIEW_SIZE).map((s) => makeItem(s, typeFor(s), particles)));
+    // A review ends with one new dialogue, from a lesson that is already learned.
+    const next = DIALOGUES.find((d) => !started(d) && lessonLearned(LESSONS[d.lesson]));
+    setItems([...list.slice(0, REVIEW_SIZE).map((s) => makeItem(s, typeFor(s), particles)), ...(next ? dialogueItems(next) : [])]);
     setLessonIdx(null);
     setView("session");
   };
@@ -153,7 +170,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
   const placeText = (st) => `${st.idx} of ${st.queue.length} done`;
 
   const nextReviewText = () => {
-    const upcoming = ALL_SENTENCES.filter(started).map((x) => progress[keyOf(x)].due);
+    const upcoming = REVIEWABLE.filter(started).map((x) => progress[keyOf(x)].due);
     if (!upcoming.length) return "";
     // Missed sentences are due again within minutes, but the plan has one review a day.
     const next = Math.min(...upcoming);
