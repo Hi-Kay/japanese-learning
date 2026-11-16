@@ -5,6 +5,7 @@ import WriteCard from "./WriteCard.jsx";
 import VariantNote from "./VariantNote.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
+import { AskButton, kanaTopic, kanjiTopic } from "./AskTutor.jsx";
 import { ExtraGroupList, KanaGroup } from "./KanaExtra.jsx";
 import { HIRAGANA, KATAKANA, KANA_ROWS } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
@@ -110,6 +111,8 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
     onImmersive?.(view !== "home" || !!writeChar || !!extraGroup);
     return () => onImmersive?.(false);
   }, [view, writeChar, extraGroup, onImmersive]);
+
+  const topicOf = ([ch, sound, reading]) => (isKanji ? kanjiTopic(ch, sound, reading) : kanaTopic(SETS[set].label.toLowerCase(), ch, sound));
 
   const changeKanaMode = (m) => { setKanaMode(m); storage.set("kanaMode", m); };
 
@@ -314,6 +317,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
           <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
           <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order & writing"><Icon name="brush" /></button>
           {isKanji && (<button onClick={() => onAddCard({ word: ch, reading: readingToKana(reading) ?? reading, meaning: sound })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
+          <AskButton topic={topicOf(it)} />
         </div>
         <div className="flex gap-3 w-full max-w-sm">
           <button onClick={goPrev} className="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Previous</button>
@@ -348,6 +352,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
             <div className="flex items-center gap-3">
               <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
               <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order"><Icon name="brush" /></button>
+              <AskButton topic={topicOf(cur.item)} />
             </div>
             <button onClick={finishIntro} className="w-full max-w-sm py-3 rounded-2xl bg-amber-400 text-white font-medium">Got it — continue</button>
           </>
@@ -360,6 +365,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
             <WriteCard char={ch} revealed={flipped} />
             {!flipped && (<button onClick={() => setFlipped(true)} className="w-full max-w-sm py-3 rounded-2xl bg-stone-800 text-white font-medium">Show answer</button>)}
             {flipped && <VariantNote char={ch} />}
+            {flipped && <AskButton topic={topicOf(cur.item)} label="Ask the tutor" />}
             {flipped && (
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                 <button onClick={() => grade(false)} className="py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium flex items-center justify-center gap-2"><Icon name="x" /> Missed</button>
@@ -386,6 +392,7 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
             <div className="flex items-center gap-3">
               <button onClick={() => speak(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
               <button onClick={() => setWriteChar(ch)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order"><Icon name="brush" /></button>
+              {flipped && <AskButton topic={topicOf(cur.item)} />}
             </div>
             {flipped && (
               <div className="grid grid-cols-2 gap-3 w-full max-w-sm">

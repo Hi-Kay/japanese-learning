@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
+import { AskButton, kanaGroupTopic } from "./AskTutor.jsx";
 import { KANA_EXTRA } from "../data/kanaExtra.js";
 import { contrastOf, makeExercise } from "../lib/kanaQuiz.js";
 import { shuffle, speak } from "../lib/srs.js";
@@ -100,8 +101,11 @@ function Quiz({ group, items, showRomaji, onGrade, onExit, onFinish }) {
       {picked && (
         <div className={`fixed inset-x-0 bottom-0 z-30 rounded-t-3xl border-t-2 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] ${good ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"}`}>
           <div className="max-w-lg mx-auto px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col gap-2.5">
-            <div className={`font-semibold flex items-center gap-2 ${good ? "text-emerald-700" : "text-rose-600"}`}>
-              <Icon name={good ? "check" : "x"} size={20} /> {good ? "Correct!" : "Not quite"}
+            <div className="flex items-center justify-between gap-2">
+              <div className={`font-semibold flex items-center gap-2 ${good ? "text-emerald-700" : "text-rose-600"}`}>
+                <Icon name={good ? "check" : "x"} size={20} /> {good ? "Correct!" : "Not quite"}
+              </div>
+              <AskButton topic={kanaGroupTopic(group, it, contrast)} label="Ask why" />
             </div>
             <div className="text-xs text-stone-500">Tap to compare:</div>
             <PlayRow kana={it.kana} ro={it.ro} en={it.en} highlight />
@@ -226,7 +230,10 @@ export function KanaGroup({ script, groupId, progress, recordResult, showRomaji,
     <div className="flex flex-col gap-5 pb-24">
       <div className="sticky top-0 z-20 -my-2 py-2 bg-stone-50 -mx-4 px-4 flex items-center justify-between">
         <button onClick={onExit} className="text-stone-400 text-sm flex items-center gap-1"><Icon name="back" size={16} /> Back</button>
-        <TextSizeButton compact />
+        <span className="flex items-center gap-2">
+          <AskButton topic={kanaGroupTopic(group)} label="Ask the tutor" />
+          <TextSizeButton compact />
+        </span>
       </div>
       <div className="flex flex-col items-center gap-2 text-center">
         <span className="w-16 h-16 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-3xl text-stone-700">{group.symbol}</span>

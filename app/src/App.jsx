@@ -4,6 +4,7 @@ import Study from "./components/Study.jsx";
 import Vocabulary from "./components/Vocabulary.jsx";
 import Sentences from "./components/Sentences.jsx";
 import Tutor from "./components/Tutor.jsx";
+import { TutorAppContext } from "./components/AskTutor.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
@@ -103,7 +104,10 @@ export default function App() {
     return { added: added.map((c) => c.word), skipped };
   }, []);
 
+  const tutorApp = { getCards: () => cards, getProgress: () => progress, addCards };
+
   return (
+    <TutorAppContext.Provider value={tutorApp}>
     <div className="min-h-screen bg-stone-50 text-stone-800">
       <div className={`max-w-lg mx-auto px-4 ${immersive ? "pt-4 pb-6" : "pt-6 pb-24"}`}>
         {!immersive && (
@@ -135,7 +139,7 @@ export default function App() {
             )}
           </header>
         )}
-        {tab === "today" && <Sentences section="today" progress={progress} recordResult={recordResult} showRomaji={showRomaji} tutorApp={{ getCards: () => cards, getProgress: () => progress, addCards }} onImmersive={setImmersive} onGoKana={goKana} />}
+        {tab === "today" && <Sentences section="today" progress={progress} recordResult={recordResult} showRomaji={showRomaji} tutorApp={tutorApp} onImmersive={setImmersive} onGoKana={goKana} />}
         {tab === "library" && !section && (
           <div className="flex flex-col gap-2">
             {SECTIONS.map((x) => (
@@ -150,7 +154,7 @@ export default function App() {
             ))}
           </div>
         )}
-        {tab === "library" && section === "lessons" && <Sentences section="lessons" progress={progress} recordResult={recordResult} showRomaji={showRomaji} tutorApp={{ getCards: () => cards, getProgress: () => progress, addCards }} onImmersive={setImmersive} onGoKana={goKana} />}
+        {tab === "library" && section === "lessons" && <Sentences section="lessons" progress={progress} recordResult={recordResult} showRomaji={showRomaji} tutorApp={tutorApp} onImmersive={setImmersive} onGoKana={goKana} />}
         {tab === "library" && section === "kana" && <Study focus={kanaFocus} onFocusDone={() => { setKanaFocus(null); setSection(null); setTab("today"); }} setIds={["hiragana", "katakana"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "library" && section === "kanji" && <Study setIds={["kanji", "rtk"]} onAddCard={addCard} progress={progress} recordResult={recordResult} onImmersive={setImmersive} showRomaji={showRomaji} />}
         {tab === "library" && section === "words" && <Vocabulary onAddCard={addCard} progress={progress} recordResult={recordResult} cards={cards} removeCard={removeCard} onImmersive={setImmersive} showRomaji={showRomaji} />}
@@ -171,5 +175,6 @@ export default function App() {
         </div>
       </nav>
     </div>
+    </TutorAppContext.Provider>
   );
 }

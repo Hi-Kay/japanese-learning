@@ -4,6 +4,7 @@ import WritePanel from "./WritePanel.jsx";
 import AddWordForm from "./AddWordForm.jsx";
 import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
+import { AskButton, wordTopic } from "./AskTutor.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
 import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
 import { hasKanji, phraseToKana } from "../lib/romaji.js";
@@ -236,6 +237,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
           <button onClick={() => speak(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
           {single && (<button onClick={() => setWriteChar(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Stroke order & writing"><Icon name="brush" /></button>)}
           {!isMine && (<button onClick={() => onAddCard({ word: it.jp, reading: kanaReading(it) ?? it.reading, meaning: it.meaning })} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Save to My Words"><Icon name="plus" /></button>)}
+          <AskButton topic={wordTopic(it)} />
         </div>
         <div className="flex gap-3 w-full max-w-sm">
           <button onClick={goPrev} className="flex-1 py-3 rounded-2xl bg-stone-100 text-stone-600 font-medium">Previous</button>
@@ -275,6 +277,7 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
         </button>
         <div className="flex items-center gap-3">
           <button onClick={() => speak(it.jp)} className="p-2 rounded-full bg-white border border-stone-200 text-stone-500" title="Hear it"><Icon name="volume" /></button>
+          {flipped && <AskButton topic={wordTopic(it)} />}
         </div>
         {flipped && (
           <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
