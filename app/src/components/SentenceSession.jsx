@@ -137,7 +137,7 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
   const count = useRef(0);
   useEffect(() => () => { cancelMic(); takesRef.current.forEach((t) => URL.revokeObjectURL(t.url)); }, []);
 
-  // Ends the running recording and adds it to the takes (the last four are kept).
+  // Ends the running recording and adds it to the takes (the last three are kept).
   const finishTake = async () => {
     const url = await stopMic();
     setMic("off");
@@ -145,8 +145,8 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
     const take = { n: ++count.current, url };
     setTakes((ts) => {
       const all = [...ts, take];
-      all.slice(0, -4).forEach((t) => URL.revokeObjectURL(t.url));
-      return all.slice(-4);
+      all.slice(0, -3).forEach((t) => URL.revokeObjectURL(t.url));
+      return all.slice(-3);
     });
     return take;
   };
@@ -171,18 +171,29 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
     if (!typed.trim()) { setEmpty(true); return; }
     onAnswer({ ...checkTyped(sentence.tokens, typed), typed });
   };
+  // One "You" row, the same before and after the answer: the microphone, then your takes.
   const micOk = canRecord() && mic !== "denied";
-  const takeList = takes.length > 0 && (
-    <div className="w-full flex flex-col items-center gap-1.5">
-      <div className="text-xs text-stone-400">{takes.length > 1 ? "Your recordings — tap to compare" : "Your recording — tap to listen"}</div>
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {takes.map((t) => (
-          <button key={t.n} onClick={() => playClip(t.url)} aria-label={`Play your recording ${t.n}`}
-            className="h-10 px-3.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium flex items-center gap-1.5 active:scale-95 transition">
-            <Icon name="volume" size={16} /> {t.n}
+  const youRow = (
+    <div className="flex items-center gap-2 min-h-11">
+      <span className="w-12 shrink-0 text-xs font-medium text-stone-400">You</span>
+      {micOk ? (
+        <>
+          <button onClick={record} aria-label={mic === "on" ? "Stop recording" : "Record yourself"}
+            className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-500"}`}>
+            {mic === "on" ? <span className="w-4 h-4 rounded-sm bg-white" /> : <Icon name="mic" size={20} />}
           </button>
-        ))}
-      </div>
+          {mic === "on" ? <span className="text-sm text-rose-600">Recording… tap to stop</span>
+            : takes.length === 0 ? <span className="text-sm text-stone-400">Tap to record yourself</span>
+            : takes.map((t) => (
+              <button key={t.n} onClick={() => playClip(t.url)} aria-label={`Play your recording ${t.n}`}
+                className="w-11 h-11 shrink-0 rounded-full bg-stone-100 text-stone-600 text-sm font-medium flex items-center justify-center active:scale-95 transition">
+                {t.n}
+              </button>
+            ))}
+        </>
+      ) : (
+        <span className="text-sm text-stone-400">{mic === "denied" ? "No microphone access. Say it out loud." : "Say it out loud"}</span>
+      )}
     </div>
   );
 
@@ -209,50 +220,32 @@ function SayExercise({ item, result, onAnswer, showRomaji }) {
     );
   }
 
+  const quit = (correct) => { cancelMic(); onAnswer({ correct }, true); };
   return (
     <>
       <div className="text-xl font-medium text-stone-800 text-center px-2">{sentence.en}</div>
+      {revealed && <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />}
+      <div className="w-full rounded-2xl bg-white border border-stone-200 px-4 py-2.5 flex flex-col gap-2">
+        {revealed && (
+          <div className="flex items-center gap-2">
+            <span className="w-12 shrink-0 text-xs font-medium text-stone-400">Model</span>
+            <AudioButtons sentence={sentence} />
+          </div>
+        )}
+        {youRow}
+      </div>
       {!revealed ? (
         <>
-          {micOk ? (
-            <div className="w-full flex flex-col items-center gap-2 py-1">
-              <button onClick={record} aria-label={mic === "on" ? "Stop recording" : "Record yourself"}
-                className={`w-20 h-20 rounded-full flex items-center justify-center active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-500"}`}>
-                {mic === "on" ? <span className="w-6 h-6 rounded-md bg-white" /> : <Icon name="mic" size={34} />}
-              </button>
-              <div className="text-sm text-stone-500 text-center">
-                {mic === "on" ? "Recording… tap to stop" : takes.length ? "Tap the microphone to try again" : "Say it out loud. Tap to record yourself."}
-              </div>
-            </div>
-          ) : (
-            <div className="w-full min-h-[4.5rem] flex items-center justify-center gap-2 px-3 rounded-2xl border-2 border-dashed border-stone-200 text-sm text-stone-400 text-center">
-              <Icon name="mic" size={18} className="shrink-0" /> {mic === "denied" ? "No microphone access. Say it out loud, then check." : "Say it first, then check"}
-            </div>
-          )}
-          {takeList}
           <button onClick={reveal} className="w-full py-3.5 rounded-2xl bg-stone-800 text-white font-medium">Show the answer</button>
           <button onClick={() => { cancelMic(); setMic("off"); stopSpeaking(); setTyping(true); }} className="text-sm text-stone-500 underline underline-offset-2">Type it instead</button>
         </>
-      ) : (
+      ) : !result && (
         <>
-          <SentenceView tokens={sentence.tokens} showRomaji={showRomaji} />
-          <AudioButtons sentence={sentence} />
-          {takeList}
-          {!result && (
-            <>
-              {micOk && (
-                <button onClick={record}
-                  className={`h-11 px-4 rounded-full text-sm font-medium flex items-center gap-2 active:scale-95 transition ${mic === "on" ? "bg-rose-500 text-white animate-pulse" : "bg-rose-50 text-rose-600"}`}>
-                  {mic === "on" ? <><span className="w-3.5 h-3.5 rounded-sm bg-white" /> Recording… tap to stop</> : <><Icon name="mic" size={16} /> {takes.length ? "Record again" : "Record yourself"}</>}
-                </button>
-              )}
-              <div className="text-sm text-stone-500">Did you say it like this?</div>
-              <div className="w-full grid grid-cols-2 gap-2">
-                <button onClick={() => { cancelMic(); onAnswer({ correct: false }, true); }} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
-                <button onClick={() => { cancelMic(); onAnswer({ correct: true }, true); }} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
-              </div>
-            </>
-          )}
+          <div className="text-sm text-stone-500">Did you say it like this?</div>
+          <div className="w-full grid grid-cols-2 gap-2">
+            <button onClick={() => quit(false)} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
+            <button onClick={() => quit(true)} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
+          </div>
         </>
       )}
     </>
