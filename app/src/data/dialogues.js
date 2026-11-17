@@ -8,6 +8,8 @@ import { LESSONS, tokensOf } from "./sentences.js";
 const DIALOGUE_DEFS = [
   ["tea", "questions", "At a café", ["kore:T wa:T ocha:V desu:V ka:V", "Is this tea?"], ["iie:Q, koohii:V desu:V", "No, it's coffee."]],
   ["station", "questions", "On the street", ["eki:T wa:T doko:V desu:V ka:V", "Where is the station?"], ["eki:T wa:T koko:V desu:V", "The station is here."]],
+  ["what", "kore", "At a market", ["sore:T wa:T nan:V desu:V ka:V", "What is that?"], ["kore:T wa:T ocha:V desu:V", "This is tea."]],
+  ["who", "kono", "At the office", ["ano:T hito:T wa:T dare:V desu:V ka:V", "Who is that person over there?"], ["tanaka:V desu:V", "That's Tanaka-san."]],
   ["coffee", "masen", "At a friend's home", ["koohii:O o:O nomimasu:V ka:V", "Do you drink coffee?"], ["hai:Q, nomimasu:V", "Yes, I do."]],
   ["where", "ni", "Leaving the office", ["doko:L ni:L ikimasu:V ka:V", "Where are you going?"], ["eki:L ni:L ikimasu:V", "I'm going to the station."]],
   ["like", "suki", "At a café", ["koohii:S ga:S suki:V desu:V ka:V", "Do you like coffee?"], ["hai:Q, suki:V desu:V", "Yes, I like it."]],

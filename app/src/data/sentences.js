@@ -38,7 +38,10 @@ const WORDS = [
   // people & pointing
   ["watashi", "私[わたし]", "watashi", "I"], ["tanaka", "田中[たなか]さん", "Tanaka-san", "Mr/Ms Tanaka"],
   ["tomodachi", "友達[ともだち]", "tomodachi", "friend"], ["kore", "これ", "kore", "this"],
-  ["koko", "ここ", "koko", "here"], ["doko", "どこ", "doko", "where"],
+  ["koko", "ここ", "koko", "here"],
+  ["sore", "それ", "sore", "that"], ["are", "あれ", "are", "that (over there)"], ["dore", "どれ", "dore", "which one"],
+  ["kono", "この", "kono", "this …"], ["sono", "その", "sono", "that …"], ["ano", "あの", "ano", "that … (over there)"],
+  ["dono", "どの", "dono", "which …"], ["hito", "人[ひと]", "hito", "person"], ["doko", "どこ", "doko", "where"],
   ["nan", "何[なん]", "nan", "what"], ["nani", "何[なに]", "nani", "what"],
   ["hai", "はい", "hai", "yes"], ["iie", "いいえ", "iie", "no"],
   // people's roles
@@ -99,9 +102,9 @@ const WORDS = [
 const PHRASE_PARTICLES = new Set(["wa", "ga", "o", "ni", "de", "mo", "to", "kara", "made"]);
 // Words that tie their neighbours into one phrase: の and the "and" と join the word
 // before and after (私の本, パンと水); a describing word belongs to the word after it
-// (おいしい寿司). Such a group moves through the sentence as one block.
+// (おいしい寿司), and so does この / その / あの / どの (この本). Such a group moves through the sentence as one block.
 const GLUE = new Set(["no", "and"]);
-const PRE = new Set(["oishii", "takai", "yasui", "ookii", "tanoshii", "atsui", "atarashii", "ii"]);
+const PRE = new Set(["kono", "sono", "ano", "dono", "oishii", "takai", "yasui", "ookii", "tanoshii", "atsui", "atarashii", "ii"]);
 
 export const LEXICON = Object.fromEntries(
   WORDS.map(([id, jp, ro, en]) => [id, { id, jp, ro, en, particle: PHRASE_PARTICLES.has(id), glue: GLUE.has(id), pre: PRE.has(id) }]),
@@ -171,6 +174,47 @@ const LESSON_DEFS = [
       ["kore:O o:O futatsu:Q kudasai:V", "Two of these, please."],
       ["mizu:O o:O mittsu:Q kudasai:V", "Three waters, please."],
       ["biiru:O o:O hitotsu:Q kudasai:V", "One beer, please."],
+    ],
+  },
+  {
+    id: "kore", title: "Point at things — これ · それ", gist: "e.g. “What is that?” — これ · それ · あれ · どれ",
+    formula: [["T", "それ"], ["T", "は"], ["V", "X"], ["V", "です"]],
+    note: "これ, それ and あれ stand on their own, like “this one”, “that one”. Which one you use depends on where the thing is: {それは何[なん]ですか} — what's that (by you)?",
+    box: {
+      title: "Near me, near you, over there",
+      items: [["これ", "kore", "by me"], ["それ", "sore", "by you"], ["あれ", "are", "over there"], ["どれ", "dore", "which one?"]],
+      notes: [
+        "こ is close to me, そ is close to you, あ is away from both of us, ど asks which one. If someone asks about それ — the thing by them — the answer is about これ, the thing by you.",
+        "Places work the same way: {ここ} (here), {そこ} (there), {あそこ} (over there), {どこ} (where).",
+      ],
+    },
+    sentences: [
+      ["sore:T wa:T nan:V desu:V ka:V", "What is that?"],
+      ["kore:T wa:T sushi:V desu:V", "This is sushi."],
+      ["are:T wa:T nan:V desu:V ka:V", "What is that over there?"],
+      ["are:T wa:T eki:V desu:V ka:V", "Is that the station over there?"],
+      ["sore:O o:O kudasai:V", "That one, please."],
+      ["dore:V desu:V ka:V", "Which one?"],
+    ],
+  },
+  {
+    id: "kono", title: "This book — この · その", gist: "e.g. “This coffee, please.” — この · その · あの · どの",
+    formula: [["O", "この"], ["O", "X"], ["O", "を"], ["V", "ください"]],
+    note: "この, その, あの and どの always need a noun right after them: {この本[ほん]} — this book. Compare {これは本[ほん]です} — this is a book. The distances are the same as これ, それ, あれ, どれ.",
+    box: {
+      title: "これ or この?",
+      items: [["これ", "kore", "this one"], ["この本[ほん]", "kono hon", "this book"], ["あれ", "are", "that one"], ["あの人[ひと]", "ano hito", "that person"]],
+      notes: [
+        "On its own → これ, それ, あれ, どれ. With a noun → この, その, あの, どの. この never stands alone: “this one, please” is {これをください}.",
+      ],
+    },
+    sentences: [
+      ["kono:O koohii:O o:O kudasai:V", "This coffee, please."],
+      ["sono:O hon:O o:O kudasai:V", "That book, please."],
+      ["ano:T hito:T wa:T sensei:V desu:V", "That person over there is a teacher."],
+      ["ano:T hito:T wa:T dare:V desu:V ka:V", "Who is that person over there?"],
+      ["dono:V hon:V desu:V ka:V", "Which book is it?"],
+      ["sono:O biiru:O o:O futatsu:Q kudasai:V", "Two of those beers, please."],
     ],
   },
   {
