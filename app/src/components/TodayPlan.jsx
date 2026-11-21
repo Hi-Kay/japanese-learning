@@ -3,10 +3,12 @@ import Icon from "./Icon.jsx";
 // Today's short to-do list: up to three parts, done one after another with a single
 // button. After each part, its summary offers the next one.
 // Once everything is done, `extra` is one more step for a day with more time (or null
-// when more wouldn't help today).
-export default function TodayPlan({ steps, extra, onStart }) {
+// when more wouldn't help today). `onSkipLesson` drops the new lesson for today, for a
+// day of only reviewing.
+export default function TodayPlan({ steps, extra, onStart, onSkipLesson }) {
   const current = steps.find((s) => !s.done);
-  const anyDone = steps.some((s) => s.done);
+  const skippable = steps.find((s) => s.skippable && !s.done);
+  const anyDone = steps.some((s) => s.done && !s.skipped);
   return (
     <div className="w-full rounded-3xl bg-white border-2 border-rose-200 p-4 flex flex-col gap-3 shadow-sm">
       <div className="flex items-baseline justify-between px-1">
@@ -28,7 +30,11 @@ export default function TodayPlan({ steps, extra, onStart }) {
         <button onClick={() => onStart(current)} className="w-full mt-1 py-3.5 rounded-2xl bg-rose-500 text-white font-medium active:scale-[0.98] transition">
           {anyDone ? `Continue · part ${steps.indexOf(current) + 1} of ${steps.length}` : current.resumes ? "Continue" : "Start"}
         </button>
-      ) : (
+      ) : null}
+      {current && skippable && (
+        <button onClick={onSkipLesson} className="text-xs text-stone-400 underline underline-offset-2 -mt-1 self-center py-1">Skip the new lesson today</button>
+      )}
+      {current ? null : (
         <>
           <div className="text-sm text-emerald-700 bg-emerald-50 rounded-2xl px-3 py-2.5 text-center">
             Done for today — well done! Everything else is optional.

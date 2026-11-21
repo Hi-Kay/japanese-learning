@@ -6,7 +6,7 @@ import SessionProgress from "./SessionProgress.jsx";
 import TextSizeButton from "./TextSizeButton.jsx";
 import { AskButton, wordTopic } from "./AskTutor.jsx";
 import { VOCAB_CATEGORIES } from "../data/vocab.js";
-import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
+import { MASTER_BOX, SESSION_SIZE, shuffle, speak, stopSpeaking } from "../lib/srs.js";
 import { hasKanji, phraseToKana } from "../lib/romaji.js";
 import SentenceView from "./SentenceView.jsx";
 import { EXAMPLE_PARTS } from "../data/vocabExamples.js";
@@ -72,6 +72,10 @@ export default function Vocabulary({ onAddCard, progress, recordResult, cards, r
     ? cards.map((c) => ({ jp: c.word, reading: c.reading, meaning: c.meaning, _id: c.id }))
     : category.items;
   const keyOf = (jp) => (isMine ? `w:${jp}|rec` : `v:${jp}|rec`);
+
+  // Moving to another card (or leaving) silences the last one, so a sound that was
+  // still loading doesn't play over the next card.
+  useEffect(() => () => stopSpeaking(), [view, rIdx, learnIdx, catId]);
 
   // In listening mode the prompt is audio, so play it as each new card appears.
   useEffect(() => {

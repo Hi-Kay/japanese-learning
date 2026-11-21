@@ -5,7 +5,7 @@ import TextSizeButton from "./TextSizeButton.jsx";
 import { AskButton, kanaGroupTopic } from "./AskTutor.jsx";
 import { KANA_EXTRA } from "../data/kanaExtra.js";
 import { contrastOf, makeExercise } from "../lib/kanaQuiz.js";
-import { shuffle, speak } from "../lib/srs.js";
+import { shuffle, speak, stopSpeaking } from "../lib/srs.js";
 import { LEARNED, MASTERED, countsForProgress, progressStatus, statusLine } from "../lib/progressStatus.js";
 import StatusIcon from "./StatusIcon.jsx";
 
@@ -50,6 +50,9 @@ function Quiz({ group, items, showRomaji, onGrade, onExit, onFinish }) {
   const { it } = ex;
   const hear = ex.type === "hear";
 
+  // Moving to another card (or leaving) silences the last one, so a sound that was
+  // still loading doesn't play over the next card.
+  useEffect(() => () => stopSpeaking(), [idx]);
   useEffect(() => { if (hear) speak(it.kana, 0.75); }, [ex.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const answer = (opt) => {

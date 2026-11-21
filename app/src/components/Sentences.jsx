@@ -196,6 +196,9 @@ export default function Sentences({ section = "today", progress, recordResult, s
     // in the next review rather than keeping this step open.
     if (lessonToday) {
       lessonStep = { id: "lesson", title: `Lesson ${lessonToday.index + 1} ${lessonLearned(lessonToday) ? "learned" : "practiced"}`, detail: "One lesson a day is plenty", done: true };
+    } else if (today.skipLesson) {
+      // The learner chose to only review today: nothing new until tomorrow.
+      lessonStep = { id: "lesson", title: "No new lesson today", detail: "Skipped — it waits for tomorrow", done: true, skipped: true };
     } else if (!planNext) {
       lessonStep = { id: "lesson", title: "All lessons done", detail: "Reviews keep them fresh", done: true };
     } else {
@@ -203,7 +206,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
       const st = statusOf(l);
       planLesson = l.index;
       const place = pausedFor(l.index);
-      lessonStep = { id: "lesson", short: l.title, ...(place
+      lessonStep = { id: "lesson", short: l.title, skippable: anyStarted, ...(place
         ? { title: `Continue: ${l.title}`, detail: `Lesson ${l.index + 1} · ${placeText(place)}`, onClick: resume, resumes: true }
         : st.state === "new"
         ? { title: `New: ${l.title}`, detail: `Lesson ${l.index + 1} · about 6 min`, onClick: () => { setLessonIdx(l.index); setView("intro"); } }
@@ -404,7 +407,7 @@ export default function Sentences({ section = "today", progress, recordResult, s
 
   return (
     <div className="flex flex-col gap-4">
-      {section === "today" && <TodayPlan steps={todaySteps()} extra={extraStep()} onStart={(step) => { setDayRun(true); step.onClick(); }} />}
+      {section === "today" && <TodayPlan steps={todaySteps()} extra={extraStep()} onStart={(step) => { setDayRun(true); step.onClick(); }} onSkipLesson={() => setToday(markToday({ skipLesson: true }))} />}
       {section === "lessons" && <div className="flex flex-col gap-1.5">
         {LESSONS.map((l) => {
           const st = statusOf(l);

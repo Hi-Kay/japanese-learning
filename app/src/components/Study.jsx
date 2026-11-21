@@ -10,7 +10,7 @@ import { ExtraGroupList, KanaGroup } from "./KanaExtra.jsx";
 import { HIRAGANA, KATAKANA, KANA_ROWS } from "../data/kana.js";
 import { KANJI } from "../data/kanji.js";
 import { RTK_200, STAGE_SIZE } from "../data/rtk.js";
-import { MASTER_BOX, SESSION_SIZE, shuffle, speak } from "../lib/srs.js";
+import { MASTER_BOX, SESSION_SIZE, shuffle, speak, stopSpeaking } from "../lib/srs.js";
 import { storage } from "../lib/storage.js";
 import { readingToKana } from "../lib/romaji.js";
 
@@ -105,6 +105,10 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
   const source = SETS[set].source;
   const allDirs = isKanji ? ["rec"] : ["rec", "rcl"];
   const reviewDirs = isKanji ? ["rec"] : kanaMode === "read" ? ["rec"] : kanaMode === "write" ? ["rcl"] : ["rec", "rcl"];
+
+  // Moving to another card (or leaving) silences the last one, so a sound that was
+  // still loading doesn't play over the next card.
+  useEffect(() => () => stopSpeaking(), [view, rIdx, learnIdx, set]);
 
   // Hide the app header during sessions so everything fits without scrolling.
   useEffect(() => {
