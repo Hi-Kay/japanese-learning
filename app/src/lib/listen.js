@@ -5,6 +5,18 @@ const Recognition = typeof window !== "undefined" && (window.SpeechRecognition |
 
 export const canListen = () => !!Recognition;
 
+// The language the tutor's microphone listens for, shared by the Tutor tab and "Ask the tutor".
+export const MIC_LANG_STORE = "tutorMicLang";
+export const MIC_LANGS = [{ id: "ja-JP", label: "日本語" }, { id: "en-US", label: "English" }];
+
+// What to send for a spoken message: Japanese is speaking practice, so the model is told
+// it is a transcript (plus the recognizer's other guesses); English is just a question.
+export const spokenContent = (text, voice) =>
+  voice && !voice.english
+    ? `[Spoken — speech-recognition transcript]\n${text}` +
+      (voice.alternatives.length ? `\n[The recognizer also heard: ${voice.alternatives.join(" / ")}]` : "")
+    : text;
+
 // Starts listening once. Calls onInterim with the text heard so far, and finally
 // onDone({ text, alternatives }) — alternatives are the recognizer's other guesses,
 // a hint that the pronunciation was unclear. Returns a function that stops listening.

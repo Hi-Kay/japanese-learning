@@ -88,6 +88,15 @@ export const japaneseOnly = (text) =>
 
 // ---------- One message ----------
 
+// For spoken practice the tutor starts with the corrected sentence; read just that line aloud.
+export const firstJapaneseLine = (text) => {
+  for (const line of text.split(/\n+/)) {
+    const jp = japaneseOnly(line);
+    if (jp) return jp;
+  }
+  return "";
+};
+
 export function ToolChips({ tools }) {
   if (!tools?.length) return null;
   return (

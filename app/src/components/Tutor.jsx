@@ -3,14 +3,12 @@ import Icon from "./Icon.jsx";
 import { runTutorTurn } from "../lib/tutor.js";
 import { PROVIDER_LIST, costOf, providerOf, totalTokens } from "../lib/providers.js";
 import { speak } from "../lib/srs.js";
-import { canListen, listen } from "../lib/listen.js";
+import { MIC_LANGS, MIC_LANG_STORE, canListen, listen, spokenContent } from "../lib/listen.js";
 import { storage } from "../lib/storage.js";
 import { KEYS_STORE, MAX_NOTES, PROVIDER_STORE, currentProvider, getMemory, loadKeys, setMemory, speakingStats } from "../lib/tutorStore.js";
-import { Message, ToolChips, japaneseOnly } from "./TutorText.jsx";
+import { Message, ToolChips, firstJapaneseLine } from "./TutorText.jsx";
 
 const CHAT_STORE = "tutorChat2";        // v2: the stored conversation is provider-neutral now
-const MIC_LANG_STORE = "tutorMicLang";
-const MIC_LANGS = [{ id: "ja-JP", label: "日本語" }, { id: "en-US", label: "English" }];
 const EMPTY_CHAT = { display: [], api: [], usage: {} };
 
 const DRILL_PROMPT = "Start a speaking drill: give me English sentences from my lessons to say in Japanese.";
@@ -21,14 +19,6 @@ const STARTERS = [
   "Check my sentence: わたしはコーヒーを飲みます",
 ];
 
-// For spoken practice the tutor starts with the corrected sentence; read just that line aloud.
-const firstJapaneseLine = (text) => {
-  for (const line of text.split(/\n+/)) {
-    const jp = japaneseOnly(line);
-    if (jp) return jp;
-  }
-  return "";
-};
 
 // ---------- API key setup ----------
 
@@ -196,10 +186,7 @@ export default function Tutor({ cards, progress, addCards }) {
     setLiveTools([]);
     const before = fresh ? { ...EMPTY_CHAT } : chat;
     // Tell the model the text is a transcript, plus what else the recognizer thought it heard.
-    const content = voice && !voice.english
-      ? `[Spoken — speech-recognition transcript]\n${text}` +
-        (voice.alternatives.length ? `\n[The recognizer also heard: ${voice.alternatives.join(" / ")}]` : "")
-      : text;
+    const content = spokenContent(text, voice);
     const userMsg = { role: "user", text: content };
     const shown = { role: "user", text: text === DRILL_PROMPT ? "Speaking drill, please! 🎤" : text, spoken: !!voice };
     setChat({ ...before, display: [...before.display, shown] });

@@ -2,11 +2,14 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "./Icon.jsx";
 import SentenceView from "./SentenceView.jsx";
-import { Message, ToolChips } from "./TutorText.jsx";
+import { Message, ToolChips, firstJapaneseLine } from "./TutorText.jsx";
 import { LESSONS, ROLES } from "../data/sentences.js";
 import { plainNote, surface } from "../lib/sentence.js";
 import { runTutorTurn } from "../lib/tutor.js";
 import { tutorAccess } from "../lib/tutorStore.js";
+import { MIC_LANGS, MIC_LANG_STORE, canListen, listen, spokenContent } from "../lib/listen.js";
+import { speak, stopSpeaking } from "../lib/speech.js";
+import { storage } from "../lib/storage.js";
 
 // "Ask the tutor" from anywhere in the app: a short chat about what is on screen.
 // The tutor is told what the learner is looking at (the `topic`), so a question like
@@ -190,19 +193,28 @@ function AskSheet({ topic, app, onClose }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [liveTools, setLiveTools] = useState([]);
+  // Speaking works as in the Tutor tab: Japanese is checked and the correction read
+  // aloud; English is just a question. The language choice is shared with the tab.
+  const [listening, setListening] = useState(false);
+  const [micLang, setMicLang] = useState(() => storage.get(MIC_LANG_STORE) || "ja-JP");
+  const chooseMicLang = (id) => { storage.set(MIC_LANG_STORE, id); setMicLang(id); };
+  const stopListening = useRef(null);
+  useEffect(() => () => stopListening.current?.(), []); // stop the mic when the sheet closes
   const end = useRef(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [display.length, busy]);
 
-  const send = async (text) => {
+  // `voice` is set when the text came from speech recognition: { alternatives } or { english }.
+  const send = async (text, voice = null) => {
     text = text.trim();
     if (!text || busy) return;
     setInput("");
     setBusy(true);
-    const shown = { role: "user", text };
+    const shown = { role: "user", text, spoken: !!voice };
     const before = display;
     setDisplay([...before, shown]);
     // The context goes with the first question; follow-ups build on it.
-    const content = api.length ? text : `${topic.context}\n\nQuestion: ${text}`;
+    const said = spokenContent(text, voice);
+    const content = api.length ? said : `${topic.context}\n\nQuestion: ${said}`;
     const tools = [];
     try {
       const reply = await runTutorTurn({
@@ -213,6 +225,7 @@ function AskSheet({ topic, app, onClose }) {
       });
       setApi(reply.messages);
       setDisplay([...before, shown, { role: "assistant", text: reply.text, tools }]);
+      if (voice && !voice.english) speak(firstJapaneseLine(reply.text)); // the corrected sentence, to repeat
     } catch (err) {
       setDisplay([...before, shown, { role: "error", text: err.message }]);
       setInput(text);
@@ -220,6 +233,28 @@ function AskSheet({ topic, app, onClose }) {
       setBusy(false);
       setLiveTools([]);
     }
+  };
+
+  const toggleMic = () => {
+    if (listening) { stopListening.current?.(); return; }
+    stopSpeaking();
+    setInput("");
+    setListening(true);
+    const english = micLang !== "ja-JP";
+    stopListening.current = listen({
+      lang: micLang,
+      onInterim: setInput, // show what's being heard, live
+      onDone: ({ text, alternatives }) => {
+        setListening(false);
+        if (!text) setInput("");
+        else send(text, english ? { english: true } : { alternatives });
+      },
+      onError: (message) => {
+        setListening(false);
+        setInput("");
+        setDisplay((d) => [...d, { role: "error", text: message }]);
+      },
+    });
   };
 
   return (
@@ -259,6 +294,19 @@ function AskSheet({ topic, app, onClose }) {
           )}
           <div ref={end} />
         </div>
+        {access && canListen() && (
+          <div className="flex items-center justify-end gap-1.5 pt-2 text-[11px] text-stone-400">
+            <Icon name="mic" size={12} /> Speak in
+            <div className="flex rounded-full border border-stone-200 bg-white p-0.5">
+              {MIC_LANGS.map((l) => (
+                <button key={l.id} onClick={() => chooseMicLang(l.id)} disabled={listening}
+                  className={`px-2.5 py-0.5 rounded-full font-medium transition ${micLang === l.id ? "bg-rose-500 text-white" : "text-stone-500"}`}>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {access && (
           <div className="flex gap-2 items-end pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <textarea
@@ -268,10 +316,21 @@ function AskSheet({ topic, app, onClose }) {
                 if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(input); }
               }}
               rows={1}
-              placeholder="Why is it …?"
+              placeholder={listening ? (micLang === "ja-JP" ? "聞いています… speak Japanese" : "Listening… speak English") : "Type or speak…"}
+              readOnly={listening}
               className="flex-1 resize-none p-3 rounded-2xl border border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-300 text-stone-800 max-h-32"
             />
-            <button onClick={() => send(input)} disabled={busy || !input.trim()} className="h-12 w-12 shrink-0 rounded-2xl bg-rose-500 text-white flex items-center justify-center disabled:opacity-40" title="Send">
+            {canListen() && (
+              <button
+                onClick={toggleMic}
+                disabled={busy}
+                className={`h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center disabled:opacity-40 transition ${listening ? "bg-rose-500 text-white animate-pulse" : "bg-white border border-stone-200 text-rose-500"}`}
+                title={listening ? "Stop listening" : micLang === "ja-JP" ? "Speak Japanese" : "Speak English"}
+              >
+                <Icon name="mic" size={20} />
+              </button>
+            )}
+            <button onClick={() => send(input)} disabled={busy || listening || !input.trim()} className="h-12 w-12 shrink-0 rounded-2xl bg-rose-500 text-white flex items-center justify-center disabled:opacity-40" title="Send">
               <Icon name="arrow" size={20} />
             </button>
           </div>
