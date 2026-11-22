@@ -59,10 +59,11 @@ function learnerAnswer(item, result) {
   return `built ${yourAnswer(item, result)}`;
 }
 
+// `result` is null in Say it after the answer was shown but before the learner rated themself.
 function exerciseContext(item, result) {
   const s = item.sentence;
   const lesson = LESSONS[s.lesson];
-  const verdict = result.correct ? (result.exact === false ? "right (a different but valid word order)" : "right") : "wrong";
+  const verdict = !result ? "" : result.correct ? (result.exact === false ? "right (a different but valid word order)" : "right") : "wrong";
   return [
     `[Context, not shown to the learner: they are doing a sentence exercise in the app and tapped "Ask the tutor".`,
     `Answer their question about this exercise. Keep it short (a few lines), simple and beginner-friendly, and explain with`,
@@ -73,11 +74,12 @@ function exerciseContext(item, result) {
     `English: ${s.en}`,
     `Correct Japanese: ${s.tokens.map(tokenText).join("")}。`,
     `Word by word: ${s.tokens.map((t) => `${t.jp} = ${t.particle ? "particle" : t.en} (${ROLES[t.role].name.toLowerCase()})`).join(", ")}`,
-    `The learner ${learnerAnswer(item, result)} — ${verdict}.`,
+    result ? `The learner ${learnerAnswer(item, result)} — ${verdict}.` : "The learner tried to say it aloud and has just seen the correct answer; they haven't rated themself yet.",
   ].filter(Boolean).join("\n");
 }
 
 function suggestions(item, result) {
+  if (!result) return ["Explain this sentence word by word", "How do I pronounce this?", "How else can I say this?"];
   const list = [];
   if (!result.correct) list.push("Why was my answer wrong?");
   list.push("Explain this sentence word by word");
@@ -86,7 +88,7 @@ function suggestions(item, result) {
   return list;
 }
 
-function sentenceTopic(item, result, showRomaji) {
+export function sentenceTopic(item, result, showRomaji) {
   return {
     context: exerciseContext(item, result),
     suggestions: suggestions(item, result),
@@ -96,7 +98,7 @@ function sentenceTopic(item, result, showRomaji) {
       <>
         <SentenceView tokens={item.sentence.tokens} showRomaji={showRomaji} size="sm" />
         <span className="text-xs text-stone-500">{item.sentence.en}</span>
-        {!result.correct && ((item.type !== "say" && item.type !== "reply") || result.typed != null) && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
+        {result && !result.correct && ((item.type !== "say" && item.type !== "reply") || result.typed != null) && <span className="text-xs text-rose-600">Your answer: {yourAnswer(item, result)}</span>}
       </>
     ),
   };

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import AskTutor from "./AskTutor.jsx";
+import AskTutor, { AskButton, sentenceTopic } from "./AskTutor.jsx";
 import Icon from "./Icon.jsx";
 import Ruby from "./Ruby.jsx";
 import SentenceView from "./SentenceView.jsx";
@@ -305,7 +305,10 @@ function SayExercise({ item, result, onAnswer, showRomaji, lead }) {
         </>
       ) : !result && (
         <>
-          <div className="text-sm text-stone-500">Did you say it like this?</div>
+          <div className="w-full flex items-center justify-between gap-2">
+            <span className="text-sm text-stone-500">Did you say it like this?</span>
+            <AskButton topic={sentenceTopic(item, null, showRomaji)} label="Ask the tutor" />
+          </div>
           <div className="w-full grid grid-cols-2 gap-2">
             <button onClick={() => quit(false)} className="py-3.5 rounded-2xl bg-white border-2 border-stone-200 text-stone-600 font-medium">Not yet</button>
             <button onClick={() => quit(true)} className="py-3.5 rounded-2xl bg-emerald-500 text-white font-medium">Yes</button>
