@@ -27,17 +27,33 @@ export function kanaPracticedToday(progress) {
   return Object.entries(progress).some(([key, st]) => isKanaKey(key) && answeredAt(st) >= start);
 }
 
+// A character has had its turn once it was answered on a few occasions (about two or
+// three days of practice), even if it isn't learned yet: then the next row comes, and
+// what is still shaky keeps coming back in the reviews mixed into those sessions —
+// instead of one tricky character holding the learner on the same row for weeks.
+const ENOUGH_TURNS = 3;
+const turns = (progress, key) => Math.max(progress[`${key}|rec`]?.n ?? 0, progress[`${key}|rcl`]?.n ?? 0);
+
 // The next kana step, in textbook order: hiragana rows → hiragana marks & sound
-// changes → katakana rows → katakana marks. Null once everything is learned.
+// changes → katakana rows → katakana marks. The first row or group whose characters
+// haven't all had their turn; once all have, the first one not learned yet. Null once
+// everything is learned.
 export function nextKanaStep(progress) {
   const learned = (ch) => (progress[`${ch}|rec`]?.box ?? 0) >= LEARNED;
+  const hadTurn = (ch) => learned(ch) || turns(progress, ch) >= ENOUGH_TURNS;
+  const groupLearned = (g) => ["learned", "mastered"].includes(progressStatus(g.items, (it) => `x:${it.kana}|rec`, progress).state);
+  const groupHadTurn = (g) => groupLearned(g) || g.items.every((it) => turns(progress, `x:${it.kana}`) >= ENOUGH_TURNS);
+  return findKanaStep(hadTurn, groupHadTurn) ?? findKanaStep(learned, groupLearned);
+}
+
+function findKanaStep(done, groupDone) {
   for (const [set, chars] of [["hiragana", HIRAGANA], ["katakana", KATAKANA]]) {
-    const row = KANA_ROWS.findIndex((r) => !chars.slice(r.start, r.start + r.len).every(([ch]) => learned(ch)));
+    const row = KANA_ROWS.findIndex((r) => !chars.slice(r.start, r.start + r.len).every(([ch]) => done(ch)));
     if (row >= 0) {
       const r = KANA_ROWS[row];
       return { set, row, title: `${set === "hiragana" ? "Hiragana" : "Katakana"} · ${r.label} row`, sample: chars.slice(r.start, r.start + r.len).map(([ch]) => ch).join(" ") };
     }
-    const group = KANA_EXTRA[set].find((g) => !["learned", "mastered"].includes(progressStatus(g.items, (it) => `x:${it.kana}|rec`, progress).state));
+    const group = KANA_EXTRA[set].find((g) => !groupDone(g));
     if (group) return { set, group: group.id, title: `${set === "hiragana" ? "Hiragana" : "Katakana"} · ${group.title}`, sample: group.items.slice(0, 4).map((it) => it.kana).join(" ") };
   }
   return null;

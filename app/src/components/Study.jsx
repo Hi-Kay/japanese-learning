@@ -129,11 +129,16 @@ export default function Study({ onAddCard, progress, recordResult, setIds, onImm
     if (sawFocusedPractice.current) onFocusDone?.();
   }, [view, extraGroup]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sent here by the Today plan to practice a kana row: start that row right away.
+  // Sent here by the Today plan to practice a kana row: start that row right away,
+  // together with the characters from earlier rows that are due for review — the plan
+  // moves on to a new row after a few days, and what is still shaky comes back here.
   useEffect(() => {
     if (focus?.row == null) return;
     const r = KANA_ROWS[focus.row];
-    startReview(source.slice(r.start, r.start + r.len));
+    const row = source.slice(r.start, r.start + r.len);
+    const t = Date.now();
+    const due = source.filter((it) => !row.includes(it) && reviewDirs.some((d) => { const st = progress[`${it[0]}|${d}`]; return st && st.due <= t; }));
+    startReview([...row, ...due]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boxOf = (ch, d) => progress[`${ch}|${d}`]?.box || 0;
