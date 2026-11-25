@@ -13,6 +13,7 @@ import { LEARNED, countsForProgress, progressStatus, statusLine, whenText } from
 import StatusIcon from "./StatusIcon.jsx";
 import TodayPlan from "./TodayPlan.jsx";
 import { kanaPracticedToday, markToday, nextKanaStep, readToday } from "../lib/today.js";
+import { holdUpdateWhile } from "../lib/update.js";
 
 const keyOf = (s) => `s:${s.id}`;
 // Spoken from the kana: the voice misreads some counting words (一人, 十) on their own.
@@ -28,6 +29,7 @@ const formulaTokens = (formula) => formula.map(([role, label]) => ({ jp: label, 
 // A session left with Back ({ lessonIdx, state }), so it can be continued later —
 // kept outside the component so switching tabs doesn't lose it.
 let paused = null;
+holdUpdateWhile(() => paused); // a reload for a new version would lose it
 
 function shuffleApart(order) {
   if (order.length < 2) return order;

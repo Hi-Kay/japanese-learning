@@ -31,10 +31,17 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // The recordings are part of the app, so they are there offline too.
-        globPatterns: ['**/*.{js,css,html,mp3}'],
+        // Only the app itself, so a new version installs within seconds. The recordings are
+        // kept offline too, but separately (runtimeCaching below, lib/offlineAudio.js).
+        globPatterns: ['**/*.{js,css,html}'],
         // Stroke-order SVGs are fetched live from a CDN; cache them so writing practice keeps working offline.
         runtimeCaching: [
+          {
+            // Played from the cache right away; a re-recorded file (same name) replaces it.
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.endsWith('.mp3'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'recordings', cacheableResponse: { statuses: [200] } },
+          },
           {
             urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/KanjiVG\//,
             handler: 'CacheFirst',

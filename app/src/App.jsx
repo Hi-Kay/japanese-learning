@@ -8,6 +8,7 @@ import { TutorAppContext } from "./components/AskTutor.jsx";
 import StreakBadge from "./components/StreakBadge.jsx";
 import VoicePicker from "./components/VoicePicker.jsx";
 import { storage } from "./lib/storage.js";
+import { holdUpdateWhile } from "./lib/update.js";
 import { nextDue } from "./lib/srs.js";
 import { bumpStreak, DEFAULT_STREAK } from "./lib/streak.js";
 import TextSizeButton from "./components/TextSizeButton.jsx";
@@ -43,6 +44,8 @@ export default function App() {
   const [toast, setToast] = useState("");
   // During a session the header is hidden so small phones fit everything without scrolling.
   const [immersive, setImmersive] = useState(false);
+  // A new version must not reload the app in the middle of a session or a tutor chat.
+  useEffect(() => holdUpdateWhile(() => immersive || tab === "tutor"), [immersive, tab]);
 
   useEffect(() => {
     setCards(storage.getJSON("deck", []));
